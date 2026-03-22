@@ -1,0 +1,51 @@
+{
+    "$schema": "https://json-schema.org/draft-04/schema#",
+    "title": "Composer Package",
+    "name": "scriptdevelop/meta-catalog-manager",
+    "version": "1.0.1",
+    "description": "Un paquete de Laravel para interactuar con la Meta Marketing API y sincronizar Catálogos e Inventarios.",
+    "keywords": [
+        "meta",
+        "laravel",
+        "api",
+        "catalog",
+        "commerce",
+        "php"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^12.0 || ^13.0",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.1",
+        "orchestra/testbench": "^10.2",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "ScriptDevelop\\MetaCatalogManager\\": "src/",
+            "ScriptDevelop\\MetaCatalogManager\\Database\\Seeders\\": "src/Database/Seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ScriptDevelop\\MetaCatalogManager\\Providers\\MetaCatalogServiceProvider"
+            ],
+            "aliases": {
+                "MetaCatalog": "ScriptDevelop\\MetaCatalogManager\\Facades\\MetaCatalog"
+            }
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "ScriptDevelop\\MetaCatalogManager\\ComposerInstaller::postInstall"
+        ],
+        "post-update-cmd": [
+            "ScriptDevelop\\MetaCatalogManager\\ComposerInstaller::postInstall"
+        ]
+    }
+}
