@@ -85,7 +85,7 @@ class ApiClient
             $statusCode = $response->getStatusCode();
 
             if ($statusCode >= 200 && $statusCode < 300) {
-                Log::channel(config('meta-catalog.logging.channel', 'meta-catalog'))
+                Log::channel(config('meta-catalog.logging.channel', 'stack'))
                     ->info('Respuesta exitosa de la Meta Graph API.', [
                         'url'         => $url,
                         'status_code' => $statusCode,
@@ -94,7 +94,7 @@ class ApiClient
                 return json_decode($response->getBody(), true) ?: [];
             }
 
-            Log::channel(config('meta-catalog.logging.channel', 'meta-catalog'))
+            Log::channel(config('meta-catalog.logging.channel', 'stack'))
                 ->warning('Respuesta no exitosa de la Meta Graph API.', [
                     'status_code'   => $statusCode,
                     'response_body' => $response->getBody()->getContents(),
@@ -103,7 +103,7 @@ class ApiClient
             throw new ApiException('Respuesta no exitosa de la API.', $statusCode);
 
         } catch (GuzzleException $e) {
-            Log::channel(config('meta-catalog.logging.channel', 'meta-catalog'))
+            Log::channel(config('meta-catalog.logging.channel', 'stack'))
                 ->error('Meta Graph API Error', [
                     'url'   => $url ?? $endpoint,
                     'error' => $e->getMessage(),
@@ -133,7 +133,7 @@ class ApiClient
             $url .= '?' . http_build_query($query);
         }
 
-        Log::channel(config('meta-catalog.logging.channel', 'meta-catalog'))
+        Log::channel(config('meta-catalog.logging.channel', 'stack'))
             ->info('Meta Catalog URL construida:', ['url' => $url]);
 
         return $url;
@@ -154,7 +154,7 @@ class ApiClient
             $body       = json_decode($response->getBody(), true) ?? [];
             $message    = $body['error']['message'] ?? $message;
 
-            Log::channel(config('meta-catalog.logging.channel', 'meta-catalog'))
+            Log::channel(config('meta-catalog.logging.channel', 'stack'))
                 ->error('Error en la respuesta de la Meta Graph API.', [
                     'status_code'   => $statusCode,
                     'response_body' => $body,

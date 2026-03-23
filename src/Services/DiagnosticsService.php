@@ -47,10 +47,15 @@ class DiagnosticsService
         $modelClass::where('meta_catalog_id', $catalog->id)->delete();
 
         foreach ($data as $apiDiagnostic) {
+            $severity = strtolower($apiDiagnostic['severity'] ?? 'error');
+            if ($severity === 'must_fix') {
+                $severity = 'error';
+            }
+
             $diagnostic = $modelClass::create([
                 'meta_catalog_id'      => $catalog->id,
                 'error_type'           => $apiDiagnostic['type'] ?? 'UNKNOWN',
-                'severity'             => strtolower($apiDiagnostic['severity'] ?? 'error'),
+                'severity'             => $severity,
                 'count'                => $apiDiagnostic['count'] ?? 0,
                 'description'          => $apiDiagnostic['description'] ?? null,
                 'affected_items_count' => $apiDiagnostic['affected_entity_count'] ?? 0,

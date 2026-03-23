@@ -16,8 +16,7 @@ class OfferService
 
     /**
      * Obtiene los feeds de tipo OFFER de un catálogo desde la Graph API.
-     *
-     * GET /{catalog_id}/product_feeds?filter[feed_type]=OFFER
+     * Trae todos los feeds y filtra localmente por feed_type === 'OFFER'.
      *
      * @return array Respuesta cruda de la API
      */
@@ -25,13 +24,18 @@ class OfferService
     {
         $client = $this->accountService->getApiClient($catalog->account);
 
-        return $client->request(
+        $response = $client->request(
             'GET',
             Endpoints::GET_FEEDS,
-            Endpoints::catalog($catalog->meta_catalog_id),
-            null,
-            ['filter' => ['feed_type' => 'OFFER']]
+            Endpoints::catalog($catalog->meta_catalog_id)
         );
+
+        $response['data'] = array_values(array_filter(
+            $response['data'] ?? [],
+            fn($feed) => ($feed['feed_type'] ?? null) === 'OFFER'
+        ));
+
+        return $response;
     }
 
     /**

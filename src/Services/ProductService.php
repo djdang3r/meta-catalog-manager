@@ -41,54 +41,74 @@ class ProductService
     }
 
     /**
-     * Crea un producto individual en la Graph API.
-     *
-     * @return array Respuesta cruda de la API
+     * Crea un producto individual en la Graph API y lo guarda en la base de datos.
      */
-    public function createSingle(MetaCatalog $catalog, array $data): array
+    public function createSingle(MetaCatalog $catalog, array $data): MetaCatalogItem
     {
         $account = $catalog->account;
         $client  = $this->accountService->getApiClient($account);
 
-        return $client->request(
+        $response = $client->request(
             'POST',
             Endpoints::CREATE_PRODUCT,
             Endpoints::catalog($catalog->meta_catalog_id),
             $data
         );
+
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+
+        return $modelClass::create(array_merge(
+            $this->mapApiDataToColumns($data),
+            [
+                'meta_catalog_id'      => $catalog->id,
+                'meta_product_item_id' => $response['id'],
+            ]
+        ));
     }
 
     /**
-     * Actualiza un producto individual en la Graph API.
-     *
-     * @return array Respuesta cruda de la API
+     * Actualiza un producto individual en la Graph API y en la base de datos.
      */
-    public function updateSingle(string $productItemId, MetaBusinessAccount $account, array $data): array
+    public function updateSingle(string $productItemId, MetaBusinessAccount $account, array $data): MetaCatalogItem
     {
         $client = $this->accountService->getApiClient($account);
 
-        return $client->request(
+        $client->request(
             'POST',
             Endpoints::UPDATE_PRODUCT,
             Endpoints::product($productItemId),
             $data
         );
+
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+        $item = $modelClass::where('meta_product_item_id', $productItemId)->firstOrFail();
+
+        $item->update($this->mapApiDataToColumns($data));
+
+        return $item->fresh();
     }
 
     /**
-     * Elimina un producto individual de la Graph API.
-     *
-     * @return array Respuesta cruda de la API
+     * Elimina un producto individual de la Graph API y lo soft-elimina de la base de datos.
      */
-    public function deleteSingle(string $productItemId, MetaBusinessAccount $account): array
+    public function deleteSingle(string $productItemId, MetaBusinessAccount $account): bool
     {
         $client = $this->accountService->getApiClient($account);
 
-        return $client->request(
+        $client->request(
             'DELETE',
             Endpoints::DELETE_PRODUCT,
             Endpoints::product($productItemId)
         );
+
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+        $item = $modelClass::where('meta_product_item_id', $productItemId)->first();
+
+        if ($item) {
+            $item->delete();
+        }
+
+        return true;
     }
 
     /**
@@ -227,6 +247,80 @@ class ProductService
      *
      * @return array Respuesta cruda de la API
      */
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    /**
+     * Mapea los campos de la API de Meta a las columnas de la base de datos.
+     * La API usa 'name', 'url'; la DB usa 'title', 'link'.
+     * El precio se normaliza a "AMOUNT CURRENCY" cuando se envían separados.
+     */
+    private function mapApiDataToColumns(array $data): array
+    {
+        $columns = [];
+
+        $map = [
+            'name'                    => 'title',
+            'description'             => 'description',
+            'rich_text_description'   => 'rich_text_description',
+            'brand'                   => 'brand',
+            'category'                => 'category',
+            'product_type'            => 'product_type',
+            'fb_product_category'     => 'fb_product_category',
+            'google_product_category' => 'google_product_category',
+            'sale_price'              => 'sale_price',
+            'sale_price_effective_date' => 'sale_price_effective_date',
+            'availability'            => 'availability',
+            'condition'               => 'condition',
+            'quantity_to_sell_on_facebook' => 'quantity_to_sell_on_facebook',
+            'image_url'               => 'image_url',
+            'additional_image_urls'   => 'additional_image_urls',
+            'mobile_link'             => 'mobile_link',
+            'item_group_id'           => 'item_group_id',
+            'color'                   => 'color',
+            'size'                    => 'size',
+            'gender'                  => 'gender',
+            'age_group'               => 'age_group',
+            'material'                => 'material',
+            'pattern'                 => 'pattern',
+            'custom_label_0'          => 'custom_label_0',
+            'custom_label_1'          => 'custom_label_1',
+            'custom_label_2'          => 'custom_label_2',
+            'custom_label_3'          => 'custom_label_3',
+            'custom_label_4'          => 'custom_label_4',
+            'gtin'                    => 'gtin',
+            'mpn'                     => 'mpn',
+            'visibility'              => 'visibility',
+            'shipping'                => 'shipping',
+            'shipping_weight'         => 'shipping_weight',
+            'retailer_id'             => 'retailer_id',
+            'item_type'               => 'item_type',
+        ];
+
+        foreach ($map as $apiKey => $dbKey) {
+            if (array_key_exists($apiKey, $data)) {
+                $columns[$dbKey] = $data[$apiKey];
+            }
+        }
+
+        // 'url' o 'link' → 'link'
+        if (array_key_exists('url', $data)) {
+            $columns['link'] = $data['url'];
+        } elseif (array_key_exists('link', $data)) {
+            $columns['link'] = $data['link'];
+        }
+
+        // price: si viene separado (int + currency) → "1999 USD"; si ya viene combinado lo deja tal cual
+        if (array_key_exists('price', $data)) {
+            $columns['price'] = isset($data['currency'])
+                ? $data['price'] . ' ' . $data['currency']
+                : $data['price'];
+        }
+
+        return $columns;
+    }
+
     public function getOverrideDetails(
         string $productItemId,
         MetaBusinessAccount $account,

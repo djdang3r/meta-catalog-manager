@@ -32,6 +32,7 @@ use ScriptDevelop\MetaCatalogManager\Services\ProductSetService;
  * @method static GenericFeedService      genericFeed()
  * @method static MerchantSettingsService merchantSettings()
  * @method static MetaCatalogManager      forAccount(MetaBusinessAccount|string $account)
+ * @method static array                  syncDeep(MetaBusinessAccount $account)
  *
  * @see MetaCatalogManager
  */

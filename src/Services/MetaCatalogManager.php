@@ -132,4 +132,71 @@ class MetaCatalogManager
     {
         return $this->contextAccount;
     }
+
+    // -------------------------------------------------------------------------
+    // Deep Sync
+    // -------------------------------------------------------------------------
+
+    /**
+     * Sincronización profunda en cascada desde Meta hacia la base de datos local.
+     *
+     * Descarga y persiste todo lo asociado a la cuenta:
+     *   account → catalogs → (products, feeds + uploads, product sets, offers, diagnostics, event stats)
+     *
+     * @return array Contadores de lo sincronizado por entidad
+     *
+     * Ejemplo de uso:
+     *   $result = MetaCatalog::syncDeep($account);
+     *   // ['catalogs' => 2, 'products' => 150, 'feeds' => 4, 'feed_uploads' => 12, ...]
+     */
+    public function syncDeep(MetaBusinessAccount $account): array
+    {
+        $summary = [
+            'catalogs'     => 0,
+            'products'     => 0,
+            'feeds'        => 0,
+            'feed_uploads' => 0,
+            'product_sets' => 0,
+            'offers'       => 0,
+            'diagnostics'  => 0,
+            'event_stats'  => 0,
+        ];
+
+        // 1. Sincronizar catálogos de la cuenta
+        $catalogs = $this->catalogService->syncFromApi($account);
+        $summary['catalogs'] = $catalogs->count();
+
+        // 2. Por cada catálogo, sincronizar todo lo que cuelga de él
+        foreach ($catalogs as $catalog) {
+            // Productos
+            $summary['products'] += $this->productService->syncFromApi($catalog);
+
+            // Feeds + uploads de cada feed
+            $feeds = $this->feedService->syncFromApi($catalog);
+            $summary['feeds'] += $feeds->count();
+
+            foreach ($feeds as $feed) {
+                $uploads = $this->feedService->syncUploads($feed);
+                $summary['feed_uploads'] += $uploads->count();
+            }
+
+            // Product Sets
+            $productSets = $this->productSetService->syncFromApi($catalog);
+            $summary['product_sets'] += $productSets->count();
+
+            // Ofertas
+            $offers = $this->offerService->syncFromApi($catalog);
+            $summary['offers'] += $offers->count();
+
+            // Diagnósticos
+            $diagnostics = $this->diagnosticsService->syncFromApi($catalog);
+            $summary['diagnostics'] += $diagnostics->count();
+
+            // Event Stats
+            $eventStats = $this->eventStatsService->syncFromApi($catalog);
+            $summary['event_stats'] += $eventStats->count();
+        }
+
+        return $summary;
+    }
 }
