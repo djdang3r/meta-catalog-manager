@@ -1,19 +1,34 @@
 {
-    "$schema": "https://json-schema.org/draft-04/schema#",
-    "title": "Composer Package",
     "name": "scriptdevelop/meta-catalog-manager",
-    "version": "1.0.1",
-    "description": "Un paquete de Laravel para interactuar con la Meta Marketing API y sincronizar Catálogos e Inventarios.",
+    "description": "Laravel package for Meta Marketing API — multi-account catalog management, product feeds, batch inventory, offers, diagnostics and localized catalogs.",
     "keywords": [
-        "meta",
         "laravel",
-        "api",
+        "meta",
+        "facebook",
+        "marketing-api",
+        "graph-api",
         "catalog",
+        "product-feed",
+        "inventory",
         "commerce",
-        "php"
+        "php",
+        "ecommerce"
     ],
+    "homepage": "https://github.com/djdang3r/meta-catalog-manager",
     "type": "library",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Wilfredo Perilla",
+            "email": "wilfredoperilla@gmail.com",
+            "homepage": "https://github.com/djdang3r",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/djdang3r/meta-catalog-manager/issues",
+        "source": "https://github.com/djdang3r/meta-catalog-manager"
+    },
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0 || ^13.0",
@@ -28,6 +43,11 @@
         "psr-4": {
             "ScriptDevelop\\MetaCatalogManager\\": "src/",
             "ScriptDevelop\\MetaCatalogManager\\Database\\Seeders\\": "src/Database/Seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ScriptDevelop\\MetaCatalogManager\\Tests\\": "tests/"
         }
     },
     "extra": {
@@ -47,5 +67,7 @@
         "post-update-cmd": [
             "ScriptDevelop\\MetaCatalogManager\\ComposerInstaller::postInstall"
         ]
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
