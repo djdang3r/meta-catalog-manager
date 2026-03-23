@@ -47,6 +47,7 @@ return [
         'meta_inventory_log'     => \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::class,
         'meta_catalog_offer'     => \ScriptDevelop\MetaCatalogManager\Models\MetaCatalogOffer::class,
         'meta_generic_feed'      => \ScriptDevelop\MetaCatalogManager\Models\MetaGenericFeed::class,
+        'meta_catalog_image'     => \ScriptDevelop\MetaCatalogManager\Models\MetaCatalogImage::class,
     ],
 
     /*
@@ -75,4 +76,31 @@ return [
     'logging' => [
         'channel' => env('META_CATALOG_LOG_CHANNEL', 'meta-catalog'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Media / Imágenes
+    |--------------------------------------------------------------------------
+    |
+    | Configuración para la descarga y almacenamiento local de imágenes
+    | de productos del catálogo.
+    |
+    */
+    'media' => [
+        // Disco de Laravel Storage donde se guardan las imágenes
+        'disk' => env('META_CATALOG_MEDIA_DISK', 'public'),
+
+        // Habilitar descarga automática de imágenes durante syncDeep
+        'auto_download' => env('META_CATALOG_AUTO_DOWNLOAD_IMAGES', false),
+
+        // Reintentos al descargar una imagen
+        'retries' => env('META_CATALOG_MEDIA_RETRIES', 3),
+
+        // Rutas relativas dentro del disco (sin slash inicial)
+        'paths' => [
+            'product_main'       => 'meta-catalog/products/main',
+            'product_additional' => 'meta-catalog/products/additional',
+        ],
+    ],
+
 ];

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-03-22
+
+### Added
+- `MetaCatalogImage` model (`meta_catalog_images` table) — stores per-product image records with `type` (`product_main` / `product_additional`), `position`, `original_url`, `local_path`, `local_url`, `mime_type`, `file_size`, and `downloaded_at`
+- `ImageService` — downloads Meta CDN images and persists them to Laravel Storage. Methods: `downloadForItem()`, `downloadForCatalog()`, `downloadForAccount()`, `syncImage()`, `download()`. Skips re-download if `original_url` has not changed; retries configurable via `meta-catalog.media.retries`
+- Migration `2025_01_01_000016_create_meta_catalog_images_table.php`
+- `MetaCatalogItem` — added `images()`, `mainImage()`, `additionalImages()` Eloquent relationships
+- `MetaCatalogManager::image()` — accessor for `ImageService`
+- `MetaCatalogManager::syncDeep()` — now downloads images when `META_CATALOG_AUTO_DOWNLOAD_IMAGES=true` (opt-in, default `false`). Summary includes `images` counter
+- `meta-catalog.media` config section: `disk`, `auto_download`, `retries`, `paths` (per image type)
+- `meta-catalog.models.meta_catalog_image` entry for model customization
+- `InstallMetaCatalogManager` wizard — new step to run `storage:link` (opt-in, default `true`)
+
 ## [1.0.3] - 2026-03-23
 
 ### Fixed

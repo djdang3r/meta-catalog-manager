@@ -11,6 +11,7 @@ use ScriptDevelop\MetaCatalogManager\Services\DiagnosticsService;
 use ScriptDevelop\MetaCatalogManager\Services\EventStatsService;
 use ScriptDevelop\MetaCatalogManager\Services\FeedService;
 use ScriptDevelop\MetaCatalogManager\Services\GenericFeedService;
+use ScriptDevelop\MetaCatalogManager\Services\ImageService;
 use ScriptDevelop\MetaCatalogManager\Services\InventoryService;
 use ScriptDevelop\MetaCatalogManager\Services\MerchantSettingsService;
 use ScriptDevelop\MetaCatalogManager\Services\MetaCatalogManager;
@@ -31,6 +32,7 @@ use ScriptDevelop\MetaCatalogManager\Services\ProductSetService;
  * @method static OfferService            offer()
  * @method static GenericFeedService      genericFeed()
  * @method static MerchantSettingsService merchantSettings()
+ * @method static ImageService            image()
  * @method static MetaCatalogManager      forAccount(MetaBusinessAccount|string $account)
  * @method static array                  syncDeep(MetaBusinessAccount $account)
  *

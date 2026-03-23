@@ -11,6 +11,7 @@ use ScriptDevelop\MetaCatalogManager\Services\DiagnosticsService;
 use ScriptDevelop\MetaCatalogManager\Services\EventStatsService;
 use ScriptDevelop\MetaCatalogManager\Services\FeedService;
 use ScriptDevelop\MetaCatalogManager\Services\GenericFeedService;
+use ScriptDevelop\MetaCatalogManager\Services\ImageService;
 use ScriptDevelop\MetaCatalogManager\Services\InventoryService;
 use ScriptDevelop\MetaCatalogManager\Services\MerchantSettingsService;
 use ScriptDevelop\MetaCatalogManager\Services\MetaCatalogManager;
@@ -109,6 +110,8 @@ class MetaCatalogServiceProvider extends ServiceProvider
             );
         });
 
+        $this->app->singleton(ImageService::class);
+
         // MetaCatalogManager — orquestador principal
         $this->app->singleton(MetaCatalogManager::class, function ($app) {
             return new MetaCatalogManager(
@@ -123,7 +126,8 @@ class MetaCatalogServiceProvider extends ServiceProvider
                 $app->make(InventoryService::class),
                 $app->make(OfferService::class),
                 $app->make(GenericFeedService::class),
-                $app->make(MerchantSettingsService::class)
+                $app->make(MerchantSettingsService::class),
+                $app->make(ImageService::class)
             );
         });
 

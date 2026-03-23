@@ -75,7 +75,22 @@ class InstallMetaCatalogManager extends Command
             }, 'Ejecutando migraciones...');
         }
 
-        // 4. Instrucciones .env
+        // 5. Storage link (necesario para servir imágenes descargadas)
+        $runStorageLink = confirm(
+            label: '¿Crear el enlace simbólico de storage (storage:link)?',
+            default: true,
+            hint: 'Necesario para servir imágenes descargadas desde el disco público.'
+        );
+
+        if ($runStorageLink) {
+            spin(function () {
+                $this->callSilent('storage:link');
+            }, 'Creando enlace simbólico de storage...');
+
+            $this->components->info('Enlace simbólico de storage creado.');
+        }
+
+        // Instrucciones .env
         outro('INSTALACIÓN COMPLETADA');
 
         $this->newLine();

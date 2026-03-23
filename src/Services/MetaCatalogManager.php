@@ -4,6 +4,7 @@ namespace ScriptDevelop\MetaCatalogManager\Services;
 
 use ScriptDevelop\MetaCatalogManager\Models\MetaBusinessAccount;
 use ScriptDevelop\MetaCatalogManager\Services\GenericFeedService;
+use ScriptDevelop\MetaCatalogManager\Services\ImageService;
 use ScriptDevelop\MetaCatalogManager\Services\InventoryService;
 use ScriptDevelop\MetaCatalogManager\Services\MerchantSettingsService;
 use ScriptDevelop\MetaCatalogManager\Services\OfferService;
@@ -32,7 +33,8 @@ class MetaCatalogManager
         protected InventoryService       $inventoryService,
         protected OfferService           $offerService,
         protected GenericFeedService     $genericFeedService,
-        protected MerchantSettingsService $merchantSettingsService
+        protected MerchantSettingsService $merchantSettingsService,
+        protected ImageService           $imageService
     ) {}
 
     // -------------------------------------------------------------------------
@@ -99,6 +101,11 @@ class MetaCatalogManager
         return $this->merchantSettingsService;
     }
 
+    public function image(): ImageService
+    {
+        return $this->imageService;
+    }
+
     // -------------------------------------------------------------------------
     // Context helpers
     // -------------------------------------------------------------------------
@@ -161,6 +168,7 @@ class MetaCatalogManager
             'offers'         => 0,
             'diagnostics'    => 0,
             'event_stats'    => 0,
+            'images'         => 0,
         ];
 
         // 1. Sincronizar catálogos de la cuenta
@@ -198,6 +206,11 @@ class MetaCatalogManager
             // Event Stats
             $eventStats = $this->eventStatsService->syncFromApi($catalog);
             $summary['event_stats'] += $eventStats->count();
+
+            // Imágenes (opt-in via META_CATALOG_AUTO_DOWNLOAD_IMAGES)
+            if (config('meta-catalog.media.auto_download', false)) {
+                $summary['images'] += $this->imageService->downloadForCatalog($catalog);
+            }
         }
 
         return $summary;

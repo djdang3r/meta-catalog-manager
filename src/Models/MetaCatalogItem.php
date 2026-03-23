@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use ScriptDevelop\MetaCatalogManager\Enums\CatalogItemType;
 use ScriptDevelop\MetaCatalogManager\Enums\ItemAvailability;
 use ScriptDevelop\MetaCatalogManager\Enums\ItemCondition;
+use ScriptDevelop\MetaCatalogManager\Models\MetaCatalogImage;
 use ScriptDevelop\MetaCatalogManager\Traits\GeneratesUlid;
 
 class MetaCatalogItem extends Model
@@ -106,6 +107,30 @@ class MetaCatalogItem extends Model
             config('meta-catalog.models.meta_inventory_log', MetaInventoryLog::class),
             'meta_catalog_item_id'
         )->latest();
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(
+            config('meta-catalog.models.meta_catalog_image', MetaCatalogImage::class),
+            'meta_catalog_item_id'
+        )->orderBy('type')->orderBy('position');
+    }
+
+    public function mainImage(): HasMany
+    {
+        return $this->hasMany(
+            config('meta-catalog.models.meta_catalog_image', MetaCatalogImage::class),
+            'meta_catalog_item_id'
+        )->where('type', 'product_main');
+    }
+
+    public function additionalImages(): HasMany
+    {
+        return $this->hasMany(
+            config('meta-catalog.models.meta_catalog_image', MetaCatalogImage::class),
+            'meta_catalog_item_id'
+        )->where('type', 'product_additional')->orderBy('position');
     }
 
     // -------------------------------------------------------------------------
