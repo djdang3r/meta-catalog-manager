@@ -152,14 +152,15 @@ class MetaCatalogManager
     public function syncDeep(MetaBusinessAccount $account): array
     {
         $summary = [
-            'catalogs'     => 0,
-            'products'     => 0,
-            'feeds'        => 0,
-            'feed_uploads' => 0,
-            'product_sets' => 0,
-            'offers'       => 0,
-            'diagnostics'  => 0,
-            'event_stats'  => 0,
+            'catalogs'       => 0,
+            'products'       => 0,
+            'inventory_logs' => 0,
+            'feeds'          => 0,
+            'feed_uploads'   => 0,
+            'product_sets'   => 0,
+            'offers'         => 0,
+            'diagnostics'    => 0,
+            'event_stats'    => 0,
         ];
 
         // 1. Sincronizar catálogos de la cuenta
@@ -168,8 +169,10 @@ class MetaCatalogManager
 
         // 2. Por cada catálogo, sincronizar todo lo que cuelga de él
         foreach ($catalogs as $catalog) {
-            // Productos
+            // Productos + historial de inventario
+            $logsBefore = \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::where('meta_catalog_id', $catalog->id)->count();
             $summary['products'] += $this->productService->syncFromApi($catalog);
+            $summary['inventory_logs'] += \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::where('meta_catalog_id', $catalog->id)->count() - $logsBefore;
 
             // Feeds + uploads de cada feed
             $feeds = $this->feedService->syncFromApi($catalog);

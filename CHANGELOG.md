@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-03-23
+
+### Fixed
+- `ProductService::syncFromApi()` now creates a `MetaInventoryLog` entry when `quantity_to_sell_on_facebook` changes during sync (source: `system`, notes: `sync_from_api`). New products with a non-null quantity also generate an initial log entry with `previous_quantity = null`
+
+### Changed
+- `MetaCatalogManager::syncDeep()` summary now includes `inventory_logs` counter reflecting how many inventory log entries were created during the product sync
+
 ## [1.0.2] - 2026-03-23
 
 ### Fixed

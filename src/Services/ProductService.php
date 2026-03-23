@@ -3,10 +3,12 @@
 namespace ScriptDevelop\MetaCatalogManager\Services;
 
 use ScriptDevelop\MetaCatalogManager\Enums\FeedOverrideType;
+use ScriptDevelop\MetaCatalogManager\Enums\InventoryChangeSource;
 use ScriptDevelop\MetaCatalogManager\MetaCatalogApi\Endpoints;
 use ScriptDevelop\MetaCatalogManager\Models\MetaBusinessAccount;
 use ScriptDevelop\MetaCatalogManager\Models\MetaCatalog;
 use ScriptDevelop\MetaCatalogManager\Models\MetaCatalogItem;
+use ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog;
 
 class ProductService
 {
@@ -128,7 +130,7 @@ class ProductService
             $items    = $response['data'] ?? [];
 
             foreach ($items as $item) {
-                $modelClass::updateOrCreate(
+                $localItem = $modelClass::updateOrCreate(
                     [
                         'meta_catalog_id' => $catalog->id,
                         'retailer_id'     => $item['retailer_id'] ?? $item['id'],
@@ -195,6 +197,26 @@ class ProductService
                         'review_status'                 => $item['review_status'] ?? null,
                     ]
                 );
+
+                // Registrar cambio de inventario si la cantidad cambió o es un producto nuevo
+                $newQty = $localItem->quantity_to_sell_on_facebook;
+                if ($newQty !== null) {
+                    $prevQty     = $localItem->wasRecentlyCreated ? null : $localItem->getOriginal('quantity_to_sell_on_facebook');
+                    $qtyChanged  = $localItem->wasRecentlyCreated || $localItem->wasChanged('quantity_to_sell_on_facebook');
+
+                    if ($qtyChanged) {
+                        $logModelClass = config('meta-catalog.models.meta_inventory_log', MetaInventoryLog::class);
+                        $logModelClass::create([
+                            'meta_catalog_item_id' => $localItem->id,
+                            'meta_catalog_id'      => $localItem->meta_catalog_id,
+                            'previous_quantity'    => $prevQty,
+                            'new_quantity'         => $newQty,
+                            'delta'                => $prevQty !== null ? $newQty - $prevQty : null,
+                            'source'               => InventoryChangeSource::SYSTEM->value,
+                            'notes'                => 'sync_from_api',
+                        ]);
+                    }
+                }
 
                 $count++;
             }
