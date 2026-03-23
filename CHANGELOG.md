@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-03-23
+
+### Added
+- `CatalogService::getDetail()` — GET `/{catalog_id}` — obtiene detalles de un catálogo específico y actualiza DB local
+- `CatalogService::update()` — POST `/{catalog_id}` — actualiza nombre, vertical, country, currency o timezone en Meta y persiste en DB
+- `CatalogService::delete()` — DELETE `/{catalog_id}` — elimina catálogo de Meta y soft-elimina el registro local
+- `ProductService::getSingle()` — GET `/{product_item_id}` — obtiene detalles de un producto individual y actualiza DB local
+
+### Changed
+- `CatalogService` ahora tiene CRUD completo (Create, Read, Update, Delete + Sync)
+- `ProductService` ahora tiene cobertura completa para lectura de un item individual
+
 ## [1.0.4] - 2026-03-22
 
 ### Added

@@ -115,6 +115,85 @@ class CatalogService
     }
 
     /**
+     * Obtiene los detalles de un catálogo específico desde la Graph API y actualiza la DB local.
+     *
+     * GET /{catalog_id}
+     */
+    public function getDetail(MetaBusinessAccount $account, string $metaCatalogId): MetaCatalog
+    {
+        $client = $this->accountService->getApiClient($account);
+
+        $response = $client->request(
+            'GET',
+            Endpoints::GET_CATALOG,
+            Endpoints::catalog($metaCatalogId),
+            ['fields' => 'id,name,vertical,country,currency,timezone_id,product_count,is_catalog_segment']
+        );
+
+        $modelClass = config('meta-catalog.models.meta_catalog', MetaCatalog::class);
+
+        $catalog = $modelClass::updateOrCreate(
+            ['meta_catalog_id' => $response['id']],
+            [
+                'meta_business_account_id' => $account->id,
+                'name'                     => $response['name'] ?? null,
+                'vertical'                 => $response['vertical'] ?? 'commerce',
+                'country'                  => $response['country'] ?? null,
+                'currency'                 => $response['currency'] ?? null,
+                'timezone_id'              => $response['timezone_id'] ?? null,
+                'product_count'            => $response['product_count'] ?? null,
+                'is_catalog_segment'       => $response['is_catalog_segment'] ?? false,
+            ]
+        );
+
+        return $catalog;
+    }
+
+    /**
+     * Actualiza un catálogo en la Graph API y en la base de datos local.
+     *
+     * POST /{catalog_id}   (Meta API usa POST para updates)
+     *
+     * @param array $data  Campos editables: name, vertical, country, currency, timezone_id
+     */
+    public function update(MetaCatalog $catalog, array $data): MetaCatalog
+    {
+        $account = $catalog->account;
+        $client  = $this->accountService->getApiClient($account);
+
+        $client->request(
+            'POST',
+            Endpoints::UPDATE_CATALOG,
+            Endpoints::catalog($catalog->meta_catalog_id),
+            $data
+        );
+
+        $allowed = ['name', 'vertical', 'country', 'currency', 'timezone_id'];
+        $catalog->update(array_intersect_key($data, array_flip($allowed)));
+
+        return $catalog->fresh();
+    }
+
+    /**
+     * Elimina un catálogo de la Graph API y soft-elimina el registro local.
+     *
+     * DELETE /{catalog_id}
+     */
+    public function delete(MetaCatalog $catalog): bool
+    {
+        $account = $catalog->account;
+        $client  = $this->accountService->getApiClient($account);
+
+        $client->request(
+            'DELETE',
+            Endpoints::DELETE_CATALOG,
+            Endpoints::catalog($catalog->meta_catalog_id)
+        );
+
+        return (bool) $catalog->delete();
+    }
+
+    /**
      * Crea un catálogo asociado a una Facebook Page.
      *
      * POST /pages/{page_id}/owned_product_catalogs

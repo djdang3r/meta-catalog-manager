@@ -114,6 +114,31 @@ class ProductService
     }
 
     /**
+     * Obtiene los detalles de un producto individual desde la Graph API y actualiza la DB local.
+     *
+     * GET /{product_item_id}
+     */
+    public function getSingle(string $productItemId, MetaBusinessAccount $account): MetaCatalogItem
+    {
+        $client = $this->accountService->getApiClient($account);
+
+        $response = $client->request(
+            'GET',
+            Endpoints::GET_PRODUCT,
+            Endpoints::product($productItemId),
+            null,
+            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,brand,category,item_group_id,gtin,mpn']
+        );
+
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+
+        $item = $modelClass::where('meta_product_item_id', $productItemId)->firstOrFail();
+        $item->update($this->mapApiDataToColumns($response));
+
+        return $item->fresh();
+    }
+
+    /**
      * Sincroniza productos desde la API hacia la base de datos local.
      * Maneja paginación automáticamente.
      *
