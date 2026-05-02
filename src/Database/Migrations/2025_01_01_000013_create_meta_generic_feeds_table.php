@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -15,17 +16,11 @@ return new class extends Migration
             $table->char('meta_catalog_id', 26);
 
             // IDs externos
-            $table->string('meta_feed_id', 100)->unique()->nullable();                // ID del feed en Meta
-            $table->string('commerce_partner_integration_id', 100)->nullable();       // para Generic Feed Files API
+            $table->string('meta_feed_id', 100)->unique()->nullable();
+            $table->string('commerce_partner_integration_id', 100)->nullable();
 
             // Tipo de feed genérico
-            $table->enum('feed_type', [
-                'PROMOTIONS',
-                'PRODUCT_RATINGS_AND_REVIEWS',
-                'SHIPPING_PROFILES',
-                'NAVIGATION_MENU',
-                'OFFER',
-            ]);
+            $table->string('feed_type', 40);
 
             // Nombre descriptivo
             $table->string('name', 255)->nullable();
@@ -46,6 +41,13 @@ return new class extends Migration
             // Index compuesto para queries por catálogo + tipo
             $table->index(['meta_catalog_id', 'feed_type']);
         });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE meta_generic_feeds ADD CONSTRAINT chk_generic_feed_type CHECK (feed_type IN ('PROMOTIONS', 'PRODUCT_RATINGS_AND_REVIEWS', 'SHIPPING_PROFILES', 'NAVIGATION_MENU', 'OFFER'))");
+        }
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE meta_generic_feeds ADD CONSTRAINT chk_generic_feed_type CHECK (feed_type IN ('PROMOTIONS', 'PRODUCT_RATINGS_AND_REVIEWS', 'SHIPPING_PROFILES', 'NAVIGATION_MENU', 'OFFER'))");
+        }
     }
 
     public function down(): void
