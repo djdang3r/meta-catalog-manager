@@ -31,7 +31,7 @@ class ComposerInstaller
         $io->write('     <fg=cyan>php artisan migrate</>');
         $io->write('');
         $io->write('  <fg=yellow>3. Agrega las siguientes variables a tu .env:</>');
-        $io->write('     <fg=cyan>META_CATALOG_GRAPH_VERSION=v22.0</>');
+        $io->write('     <fg=cyan>META_CATALOG_GRAPH_VERSION=v25.0</>');
         $io->write('     <fg=cyan>META_CATALOG_LOG_CHANNEL=meta-catalog</>');
         $io->write('');
     }

@@ -35,8 +35,8 @@ El wizard realiza las siguientes acciones:
 Agregá estas variables a tu archivo `.env`:
 
 ```env
-# Versión de la Graph API de Meta (default: v22.0)
-META_CATALOG_GRAPH_VERSION=v22.0
+# Versión de la Graph API de Meta (default: v25.0)
+META_CATALOG_GRAPH_VERSION=v25.0
 
 # Canal de logging para el paquete (default: meta-catalog)
 META_CATALOG_LOG_CHANNEL=meta-catalog

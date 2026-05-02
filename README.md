@@ -1,4 +1,4 @@
-# Meta Catalog Manager
+# Meta Catalog Manager for LARAVEL
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/scriptdevelop/meta-catalog-manager.svg?style=flat-square)](https://packagist.org/packages/scriptdevelop/meta-catalog-manager)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue?style=flat-square)](https://php.net)
@@ -83,7 +83,7 @@ php artisan migrate
 
 'api' => [
     'base_url'      => env('META_CATALOG_API_URL', 'https://graph.facebook.com'),
-    'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v22.0'),
+    'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v25.0'),
     'timeout'       => env('META_CATALOG_API_TIMEOUT', 30),
     'retries'       => env('META_CATALOG_API_RETRIES', 3),
 ],
@@ -93,7 +93,7 @@ php artisan migrate
 
 ```env
 META_CATALOG_API_URL=https://graph.facebook.com
-META_CATALOG_GRAPH_VERSION=v22.0
+META_CATALOG_GRAPH_VERSION=v25.0
 META_CATALOG_API_TIMEOUT=30
 META_CATALOG_API_RETRIES=3
 META_CATALOG_AUTO_MIGRATIONS=true
@@ -179,10 +179,11 @@ $count = MetaCatalog::product()->syncFromApi($catalog);
 // Single product operations
 MetaCatalog::product()->createSingle($catalog, [
     'retailer_id' => 'SKU-001',
-    'title'       => 'Blue T-Shirt',
-    'price'       => '19.99 USD',
-    'link'        => 'https://mystore.com/t-shirt',
-    'image_link'  => 'https://mystore.com/t-shirt.jpg',
+    'name'       => 'Blue T-Shirt',
+    'price'       => 1999,
+    'currency'    => 'USD',
+    'url'        => 'https://mystore.com/t-shirt',
+    'image_url'  => 'https://mystore.com/t-shirt.jpg',
     'availability'=> 'in stock',
     'condition'   => 'new',
     'brand'       => 'MyBrand',
