@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -10,39 +11,17 @@ return new class extends Migration
     {
         Schema::create('meta_inventory_logs', function (Blueprint $table) {
             $table->char('id', 26)->primary();
-
-            // El producto cuyo inventario cambió
             $table->char('meta_catalog_item_id', 26);
-
-            // Desnormalizado para queries rápidos por catálogo sin JOIN
             $table->char('meta_catalog_id', 26);
-
-            // Valores antes y después del cambio
-            $table->unsignedInteger('previous_quantity')->nullable();
-            $table->unsignedInteger('new_quantity')->nullable();
-
-            // Delta: positivo = reposición, negativo = bajó stock
-            $table->integer('delta')->nullable();
-
-            // Origen del cambio
-            $table->enum('source', [
-                'feed_upload',  // cambio vino de un feed upload
-                'batch_api',    // cambio vino de la Batch API en tiempo real
-                'manual',       // cambio hecho a mano via ProductService
-                'system',       // cambio interno del paquete
-            ])->default('manual');
-
-            // Links opcionales al origen exacto del cambio
+            $table->bigInteger('previous_quantity')->nullable();
+            $table->bigInteger('new_quantity')->nullable();
+            $table->bigInteger('delta')->nullable();
+            $table->string('source', 20)->default('manual');
             $table->char('meta_batch_request_id', 26)->nullable();
             $table->char('meta_product_feed_upload_id', 26)->nullable();
-
-            // Contexto adicional
             $table->text('notes')->nullable();
-
-            // Sin softDeletes — el historial es inmutable
             $table->timestamps();
 
-            // Foreign keys
             $table->foreign('meta_catalog_item_id')
                 ->references('id')
                 ->on('meta_catalog_items')
@@ -63,11 +42,17 @@ return new class extends Migration
                 ->on('meta_product_feed_uploads')
                 ->nullOnDelete();
 
-            // Indexes para queries frecuentes
             $table->index(['meta_catalog_item_id', 'created_at']);
             $table->index(['meta_catalog_id', 'created_at']);
             $table->index('source');
         });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE meta_inventory_logs ADD CONSTRAINT chk_source CHECK (source IN ('feed_upload', 'batch_api', 'manual', 'system'))");
+        }
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE meta_inventory_logs ADD CONSTRAINT chk_source CHECK (source IN ('feed_upload', 'batch_api', 'manual', 'system'))");
+        }
     }
 
     public function down(): void

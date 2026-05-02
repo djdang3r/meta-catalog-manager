@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('meta_product_set_id', 50)->unique();
             $table->string('name', 255)->nullable();
             $table->json('filter')->nullable();
-            $table->unsignedInteger('product_count')->default(0);
+            $table->bigInteger('product_count')->default(0);
             $table->timestamps();
             $table->softDeletes();
 

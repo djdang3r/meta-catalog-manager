@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -10,78 +11,68 @@ return new class extends Migration
     {
         Schema::create('meta_catalog_offers', function (Blueprint $table) {
             $table->char('id', 26)->primary();
-
-            // Relación con el catálogo
             $table->char('meta_catalog_id', 26);
-
-            // IDs
-            $table->string('meta_offer_id', 100)->unique()->nullable();  // ID de Meta
-            $table->string('offer_id', 255)->notNull();                  // ID del vendedor (retailer_id equivalent)
-
-            // Información básica
+            $table->string('meta_offer_id', 100)->unique()->nullable();
+            $table->string('offer_id', 255)->notNull();
             $table->string('title', 500)->nullable();
             $table->text('description')->nullable();
-
-            // Tipo de aplicación de la oferta
-            $table->enum('application_type', ['SALE', 'AUTOMATIC_AT_CHECKOUT', 'BUYER_APPLIED']);
-
-            // Tipo y valor del descuento
-            $table->enum('value_type', ['FIXED_AMOUNT', 'PERCENTAGE']);
-            $table->string('fixed_amount_off', 50)->nullable();       // "30.99 USD"
-            $table->unsignedTinyInteger('percent_off')->nullable();   // 0-100
-
-            // Target
-            $table->enum('target_type', ['LINE_ITEM', 'SHIPPING'])->default('LINE_ITEM');
-            $table->enum('target_granularity', ['ITEM_LEVEL', 'ORDER_LEVEL'])->default('ITEM_LEVEL');
-            $table->enum('target_selection', ['ALL_CATALOG_PRODUCTS', 'SPECIFIC_PRODUCTS'])->default('ALL_CATALOG_PRODUCTS');
-            $table->json('target_filter')->nullable();                              // product set filter rules
-            $table->json('target_product_retailer_ids')->nullable();               // array de retailer IDs
+            $table->string('application_type', 30);
+            $table->string('value_type', 20);
+            $table->string('fixed_amount_off', 50)->nullable();
+            $table->smallInteger('percent_off')->nullable();
+            $table->string('target_type', 20)->default('LINE_ITEM');
+            $table->string('target_granularity', 20)->default('ITEM_LEVEL');
+            $table->string('target_selection', 30)->default('ALL_CATALOG_PRODUCTS');
+            $table->json('target_filter')->nullable();
+            $table->json('target_product_retailer_ids')->nullable();
             $table->json('target_product_group_retailer_ids')->nullable();
             $table->json('target_product_set_retailer_ids')->nullable();
-            $table->json('target_shipping_option_types')->nullable();              // ['STANDARD','RUSH','EXPEDITED']
-
-            // Prerrequisitos (Buy X Get Y)
+            $table->json('target_shipping_option_types')->nullable();
             $table->json('prerequisite_filter')->nullable();
             $table->json('prerequisite_product_retailer_ids')->nullable();
             $table->json('prerequisite_product_group_retailer_ids')->nullable();
             $table->json('prerequisite_product_set_retailer_ids')->nullable();
-            $table->unsignedInteger('min_quantity')->default(0);
-            $table->string('min_subtotal', 50)->nullable();                        // "30.99 USD"
-
-            // Buy X Get Y específicos
-            $table->unsignedInteger('target_quantity')->default(0);
-            $table->unsignedInteger('redemption_limit_per_order')->default(0);
-
-            // Códigos de cupón
-            $table->json('coupon_codes')->nullable();                              // array de códigos (max 100)
+            $table->bigInteger('min_quantity')->default(0);
+            $table->string('min_subtotal', 50)->nullable();
+            $table->bigInteger('target_quantity')->default(0);
+            $table->bigInteger('redemption_limit_per_order')->default(0);
+            $table->json('coupon_codes')->nullable();
             $table->string('public_coupon_code', 20)->nullable();
-            $table->unsignedInteger('redeem_limit_per_user')->default(0);
-
-            // Vigencia
+            $table->bigInteger('redeem_limit_per_user')->default(0);
             $table->timestamp('start_date_time');
             $table->timestamp('end_date_time')->nullable();
             $table->boolean('exclude_sale_priced_products')->default(false);
-
-            // Términos y condiciones
-            $table->text('offer_terms')->nullable();                               // max 2500 chars
-
-            // Estado
-            $table->enum('status', ['active', 'inactive', 'expired'])->default('active');
-
+            $table->text('offer_terms')->nullable();
+            $table->string('status', 20)->default('active');
             $table->timestamps();
             $table->softDeletes();
 
-            // Foreign key
             $table->foreign('meta_catalog_id')
                 ->references('id')
                 ->on('meta_catalogs')
                 ->cascadeOnDelete();
 
-            // Indexes
             $table->index(['meta_catalog_id', 'status']);
             $table->index('offer_id');
             $table->index(['start_date_time', 'end_date_time']);
         });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_application_type CHECK (application_type IN ('SALE', 'AUTOMATIC_AT_CHECKOUT', 'BUYER_APPLIED'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_value_type CHECK (value_type IN ('FIXED_AMOUNT', 'PERCENTAGE'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_target_type CHECK (target_type IN ('LINE_ITEM', 'SHIPPING'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_target_granularity CHECK (target_granularity IN ('ITEM_LEVEL', 'ORDER_LEVEL'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_target_selection CHECK (target_selection IN ('ALL_CATALOG_PRODUCTS', 'SPECIFIC_PRODUCTS'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_offer_status CHECK (status IN ('active', 'inactive', 'expired'))");
+        }
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_application_type CHECK (application_type IN ('SALE', 'AUTOMATIC_AT_CHECKOUT', 'BUYER_APPLIED'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_value_type CHECK (value_type IN ('FIXED_AMOUNT', 'PERCENTAGE'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_target_type CHECK (target_type IN ('LINE_ITEM', 'SHIPPING'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_target_granularity CHECK (target_granularity IN ('ITEM_LEVEL', 'ORDER_LEVEL'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_target_selection CHECK (target_selection IN ('ALL_CATALOG_PRODUCTS', 'SPECIFIC_PRODUCTS'))");
+            DB::statement("ALTER TABLE meta_catalog_offers ADD CONSTRAINT chk_offer_status CHECK (status IN ('active', 'inactive', 'expired'))");
+        }
     }
 
     public function down(): void

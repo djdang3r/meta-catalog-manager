@@ -41,16 +41,6 @@ class MetaBusinessAccount extends Model
     // Encrypted Mutators/Accessors
     // -------------------------------------------------------------------------
 
-    public function setAppIdAttribute(?string $value): void
-    {
-        $this->attributes['app_id'] = $value !== null ? encrypt($value) : null;
-    }
-
-    public function getAppIdAttribute(?string $value): ?string
-    {
-        return $value !== null ? decrypt($value) : null;
-    }
-
     public function setAppSecretAttribute(?string $value): void
     {
         $this->attributes['app_secret'] = $value !== null ? encrypt($value) : null;

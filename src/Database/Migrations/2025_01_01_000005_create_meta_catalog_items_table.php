@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -15,16 +16,7 @@ return new class extends Migration
             $table->char('meta_product_feed_id', 26)->nullable();
             $table->string('meta_product_item_id', 100)->unique()->nullable();
             $table->string('retailer_id', 255);
-            $table->enum('item_type', [
-                'PRODUCT_ITEM',
-                'VEHICLE',
-                'HOTEL',
-                'HOTEL_ROOM',
-                'FLIGHT',
-                'DESTINATION',
-                'HOME_LISTING',
-                'VEHICLE_OFFER',
-            ])->default('PRODUCT_ITEM');
+            $table->string('item_type', 20)->default('PRODUCT_ITEM');
 
             // Basic product info
             $table->string('title', 500)->nullable();
@@ -39,15 +31,9 @@ return new class extends Migration
             $table->string('sale_price_effective_date', 100)->nullable();
 
             // Availability & Status
-            $table->enum('availability', [
-                'in stock',
-                'out of stock',
-                'preorder',
-                'available for order',
-                'discontinued',
-            ])->default('in stock');
-            $table->enum('condition', ['new', 'refurbished', 'used'])->default('new');
-            $table->unsignedInteger('quantity_to_sell_on_facebook')->nullable();
+            $table->string('availability', 30)->default('in stock');
+            $table->string('condition', 20)->default('new');
+            $table->bigInteger('quantity_to_sell_on_facebook')->nullable();
 
             // Images
             $table->string('image_url', 1000)->nullable();
@@ -78,30 +64,29 @@ return new class extends Migration
             $table->string('shipping_weight', 50)->nullable();
 
             // Product Categories
-            $table->string('fb_product_category', 500)->nullable();    // Facebook Product Category (nombre o ID)
-            $table->string('gtin', 100)->nullable();                    // Global Trade Identification Number (UPC, EAN, JAN, ISBN)
-            $table->string('mpn', 100)->nullable();                     // Manufacturer Part Number
+            $table->string('fb_product_category', 500)->nullable();
+            $table->string('google_product_category', 500)->nullable();
+            $table->string('gtin', 100)->nullable();
+            $table->string('mpn', 100)->nullable();
+
+            // Rich text description
+            $table->text('rich_text_description')->nullable();
+
+            // Product type (internal categorization)
+            $table->string('product_type', 750)->nullable();
 
             // App Links (Deep Links)
             $table->json('app_links')->nullable();
-            // Estructura del JSON app_links:
-            // {
-            //   "android_app_name": "", "android_package": "", "android_url": "",
-            //   "ios_app_name": "", "ios_app_store_id": "", "ios_url": "",
-            //   "ipad_app_name": "", "ipad_app_store_id": "", "ipad_url": "",
-            //   "iphone_app_name": "", "iphone_app_store_id": "", "iphone_url": "",
-            //   "windows_phone_app_name": "", "windows_phone_app_id": "", "windows_phone_url": ""
-            // }
+
+            // Internal labels
+            $table->json('internal_label')->nullable();
 
             // Status & errors
-            $table->enum('visibility', ['published', 'staging'])->default('published');
+            $table->string('visibility', 20)->default('published');
             $table->string('review_status', 50)->nullable();
             $table->json('errors')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
-
-            // Foreign keys
             $table->foreign('meta_catalog_id')
                 ->references('id')
                 ->on('meta_catalogs')
@@ -114,12 +99,24 @@ return new class extends Migration
 
             // Indexes
             $table->index(['meta_catalog_id', 'retailer_id']);
-            $table->index('item_group_id');
             $table->index('availability');
             $table->index('item_type');
             $table->index('fb_product_category');
             $table->index('gtin');
         });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_item_type CHECK (item_type IN ('PRODUCT_ITEM', 'VEHICLE', 'HOTEL', 'HOTEL_ROOM', 'FLIGHT', 'DESTINATION', 'HOME_LISTING', 'VEHICLE_OFFER'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_availability CHECK (availability IN ('in stock', 'out of stock', 'preorder', 'available for order', 'discontinued'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_condition CHECK (condition IN ('new', 'refurbished', 'used'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_visibility CHECK (visibility IN ('published', 'staging'))");
+        }
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_item_type CHECK (item_type IN ('PRODUCT_ITEM', 'VEHICLE', 'HOTEL', 'HOTEL_ROOM', 'FLIGHT', 'DESTINATION', 'HOME_LISTING', 'VEHICLE_OFFER'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_availability CHECK (availability IN ('in stock', 'out of stock', 'preorder', 'available for order', 'discontinued'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_condition CHECK (condition IN ('new', 'refurbished', 'used'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_visibility CHECK (visibility IN ('published', 'staging'))");
+        }
     }
 
     public function down(): void

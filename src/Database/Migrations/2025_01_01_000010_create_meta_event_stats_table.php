@@ -15,12 +15,12 @@ return new class extends Migration
             $table->date('date_stop');
             $table->string('event', 100);
             $table->string('device_type', 50)->nullable();
-            $table->unsignedBigInteger('total_matched_content_ids')->default(0);
-            $table->unsignedBigInteger('total_content_ids_matched_other_catalogs')->default(0);
-            $table->unsignedBigInteger('total_unmatched_content_ids')->default(0);
-            $table->unsignedBigInteger('unique_matched_content_ids')->default(0);
-            $table->unsignedBigInteger('unique_content_ids_matched_other_catalogs')->default(0);
-            $table->unsignedBigInteger('unique_unmatched_content_ids')->default(0);
+            $table->bigInteger('total_matched_content_ids')->default(0);
+            $table->bigInteger('total_content_ids_matched_other_catalogs')->default(0);
+            $table->bigInteger('total_unmatched_content_ids')->default(0);
+            $table->bigInteger('unique_matched_content_ids')->default(0);
+            $table->bigInteger('unique_content_ids_matched_other_catalogs')->default(0);
+            $table->bigInteger('unique_unmatched_content_ids')->default(0);
             $table->timestamps();
 
             $table->foreign('meta_event_source_id')

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -13,21 +14,13 @@ return new class extends Migration
             $table->char('meta_business_account_id', 26);
             $table->string('meta_catalog_id', 50)->unique();
             $table->string('name', 255)->nullable();
-            $table->enum('vertical', [
-                'commerce',
-                'vehicles',
-                'hotels',
-                'flights',
-                'destinations',
-                'home_listings',
-                'vehicle_offers',
-            ])->default('commerce');
+            $table->string('vertical', 20)->default('commerce');
             $table->string('country', 10)->nullable();
             $table->string('currency', 10)->nullable();
             $table->string('timezone_id', 100)->nullable();
-            $table->unsignedInteger('product_count')->default(0);
+            $table->bigInteger('product_count')->default(0);
             $table->boolean('is_catalog_segment')->default(false);
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->string('status', 20)->default('active');
             $table->timestamps();
             $table->softDeletes();
 
@@ -36,6 +29,15 @@ return new class extends Migration
                 ->on('meta_business_accounts')
                 ->cascadeOnDelete();
         });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE meta_catalogs ADD CONSTRAINT chk_meta_catalogs_vertical CHECK (vertical IN ('commerce', 'vehicles', 'hotels', 'flights', 'destinations', 'home_listings', 'vehicle_offers'))");
+            DB::statement("ALTER TABLE meta_catalogs ADD CONSTRAINT chk_meta_catalogs_status CHECK (status IN ('active', 'inactive'))");
+        }
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE meta_catalogs ADD CONSTRAINT chk_meta_catalogs_vertical CHECK (vertical IN ('commerce', 'vehicles', 'hotels', 'flights', 'destinations', 'home_listings', 'vehicle_offers'))");
+            DB::statement("ALTER TABLE meta_catalogs ADD CONSTRAINT chk_meta_catalogs_status CHECK (status IN ('active', 'inactive'))");
+        }
     }
 
     public function down(): void

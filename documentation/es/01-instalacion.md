@@ -42,32 +42,35 @@ META_CATALOG_GRAPH_VERSION=v25.0
 META_CATALOG_LOG_CHANNEL=meta-catalog
 
 # Control de migraciones automáticas (default: true)
-# Si lo ponés en false, tenés que publicar y correr las migraciones manualmente
 META_CATALOG_AUTO_MIGRATIONS=true
 
 # Timeout de requests a la API en segundos (default: 30)
 META_CATALOG_API_TIMEOUT=30
+
+# Credenciales OAuth para el registro embebido (Embedded Signup)
+META_CATALOG_APP_ID=
+META_CATALOG_APP_SECRET=
 ```
 
 ## Crear la Primera Cuenta
 
-Una vez instalado, creá tu primera cuenta de negocio de Meta:
+### Flujo Manual
 
 ```php
 use ScriptDevelop\MetaCatalogManager\Facades\MetaCatalog;
 
+// Solo necesitás business_id y access_token
 $account = MetaCatalog::account()->create([
-    'meta_business_id' => '123456789',        // ID de tu Business Manager
-    'name'             => 'Mi Tienda',
-    'app_id'           => 'tu_app_id',         // Se encripta automáticamente en DB
-    'app_secret'       => 'tu_app_secret',     // Se encripta automáticamente en DB
-    'access_token'     => 'EAAxxxxx...',       // Se encripta automáticamente en DB
+    'meta_business_id' => '123456789',
+    'access_token'     => 'EAAxxxxx...',
 ]);
+// El nombre del negocio se obtiene automáticamente desde Meta
+// Los catálogos se sincronizan automáticamente
 
-// Sincronizar los catálogos existentes desde Meta
-$catalogs = MetaCatalog::catalog()->syncFromApi($account);
-
-echo "Catálogos sincronizados: " . $catalogs->count();
+echo $account->name; // "Mi Tienda" (fetcheado de Meta)
+echo $account->catalogs->count(); // Catálogos ya sincronizados
 ```
 
-> **Importante:** `app_id`, `app_secret` y `access_token` se encriptan automáticamente usando la clave de encriptación de Laravel (`APP_KEY`). Nunca se almacenan en texto plano en la base de datos.
+### Flujo Embedded Signup (WhatsApp)
+
+Para usar el registro embebido, configurá las credenciales OAuth en `.env`:

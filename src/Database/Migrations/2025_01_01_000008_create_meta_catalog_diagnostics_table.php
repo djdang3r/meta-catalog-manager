@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -12,10 +13,10 @@ return new class extends Migration
             $table->char('id', 26)->primary();
             $table->char('meta_catalog_id', 26);
             $table->string('error_type', 255);
-            $table->enum('severity', ['warning', 'error'])->default('error');
-            $table->unsignedInteger('count')->default(0);
+            $table->string('severity', 20)->default('error');
+            $table->bigInteger('count')->default(0);
             $table->text('description')->nullable();
-            $table->unsignedInteger('affected_items_count')->default(0);
+            $table->bigInteger('affected_items_count')->default(0);
             $table->json('samples')->nullable();
             $table->timestamp('fetched_at')->nullable();
             $table->timestamps();
@@ -25,6 +26,13 @@ return new class extends Migration
                 ->on('meta_catalogs')
                 ->cascadeOnDelete();
         });
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE meta_catalog_diagnostics ADD CONSTRAINT chk_diagnostic_severity CHECK (severity IN ('warning', 'error'))");
+        }
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE meta_catalog_diagnostics ADD CONSTRAINT chk_diagnostic_severity CHECK (severity IN ('warning', 'error'))");
+        }
     }
 
     public function down(): void
