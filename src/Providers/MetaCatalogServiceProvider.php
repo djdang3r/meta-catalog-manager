@@ -41,12 +41,18 @@ class MetaCatalogServiceProvider extends ServiceProvider
         $this->app->singleton(MetaCatalogModelResolver::class);
 
         // Services
-        $this->app->singleton(AccountService::class);
+        $this->app->singleton(AccountService::class, function ($app) {
+            return new AccountService(null);
+        });
 
         $this->app->singleton(CatalogService::class, function ($app) {
             return new CatalogService(
                 $app->make(AccountService::class)
             );
+        });
+
+        $this->app->afterResolving(AccountService::class, function (AccountService $accountService, $app) {
+            $accountService->setCatalogService($app->make(CatalogService::class));
         });
 
         $this->app->singleton(ProductService::class, function ($app) {

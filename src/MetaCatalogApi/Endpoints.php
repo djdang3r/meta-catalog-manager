@@ -11,7 +11,8 @@ class Endpoints
     // -------------------------------------------------------------------------
     // Business Account Endpoints
     // -------------------------------------------------------------------------
-    const GET_BUSINESS = '{business_id}';
+    const GET_BUSINESS     = '{business_id}';
+    const OAUTH_ACCESS_TOKEN = 'oauth/access_token';
 
     // -------------------------------------------------------------------------
     // Catalog Endpoints

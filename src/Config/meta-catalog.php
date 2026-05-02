@@ -11,17 +11,24 @@ return [
     |
     */
     'api' => [
-        // URL base de la Graph API
         'base_url' => env('META_CATALOG_API_URL', 'https://graph.facebook.com'),
-
-        // Versión de la Graph API
         'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v25.0'),
-
-        // Tiempo de espera para las solicitudes (en segundos)
         'timeout' => env('META_CATALOG_API_TIMEOUT', 30),
-
-        // Número de reintentos en caso de error
         'retries' => env('META_CATALOG_API_RETRIES', 3),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OAuth / Embedded Signup
+    |--------------------------------------------------------------------------
+    |
+    | Credenciales de la app Meta usadas para el flujo de registro embebido
+    | (Embedded Signup) y para intercambiar el code por el business_token.
+    |
+    */
+    'oauth' => [
+        'app_id'     => env('META_CATALOG_APP_ID', ''),
+        'app_secret' => env('META_CATALOG_APP_SECRET', ''),
     ],
 
     /*

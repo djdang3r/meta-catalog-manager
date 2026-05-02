@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-05-02
+
+### Added
+- `AccountService::createFromEmbeddedSignup()` — flujo OAuth para registro embebido de WhatsApp (Embedded Signup v4)
+- `AccountService::exchangeCodeForToken()` — intercambia code por business_token via OAuth
+- `AccountService::fetchBusinessInfo()` — `GET /{business_id}?fields=name,id,vertical`
+- `AccountService::syncBusinessInfo()` — actualiza cuenta local con datos de Meta
+- `meta-catalog.oauth` config section — `app_id` y `app_secret` para flujo OAuth
+- `Endpoints::OAUTH_ACCESS_TOKEN` — endpoint para intercambio de token
+
+### Changed
+- `AccountService::create()` — auto-fetchea `name` desde Meta si no se proporciona + auto-sincroniza catálogos
+- `MetaBusinessAccount` — `app_id` ya no se encripta (no es información sensible)
+- Migraciones completamente reescritas — 14 consolidadas (1 por tabla), compatibles MySQL 8 y PostgreSQL 18
+- Tipos de columna: `enum` → `string` + `CHECK`, `unsigned*` → `bigInteger/smallInteger` para cross-DB compat
+- Graph API default actualizado de `v22.0` a `v25.0` (Feb 2026) en todos los archivos
+
+### Fixed
+- Migraciones dispersas consolidadas — campos de `_add_*` y `_alter_*` incluidos en la migración base
+- `MetaCatalogImage.id` ahora usa `char(26)` consistente con el resto de modelos
+- Provider: `AccountService` ahora recibe `CatalogService` via setter injection (rompe circular dependency)
+
 ## [1.0.6] - 2026-05-02
 
 ### Changed

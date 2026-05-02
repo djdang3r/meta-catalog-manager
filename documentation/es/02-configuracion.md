@@ -30,6 +30,22 @@ Esto crea `config/meta-catalog.php` en tu proyecto.
 ],
 ```
 
+### `oauth` — Credenciales para Embedded Signup
+
+Configuración requerida para el flujo de registro embebido de WhatsApp (Embedded Signup v4).
+
+```php
+'oauth' => [
+    'app_id'     => env('META_CATALOG_APP_ID', ''),
+    'app_secret' => env('META_CATALOG_APP_SECRET', ''),
+],
+```
+
+```env
+META_CATALOG_APP_ID=236484624622562
+META_CATALOG_APP_SECRET=614fc2afde15eee07a26b2fe3eaee9b9
+```
+
 ### `models` — Override de Modelos
 
 Podés reemplazar cualquier modelo del paquete con tu propia clase. Útil cuando necesitás agregar relaciones, métodos o comportamientos específicos de tu aplicación:

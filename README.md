@@ -98,6 +98,8 @@ META_CATALOG_API_TIMEOUT=30
 META_CATALOG_API_RETRIES=3
 META_CATALOG_AUTO_MIGRATIONS=true
 META_CATALOG_LOG_CHANNEL=meta-catalog
+META_CATALOG_APP_ID=
+META_CATALOG_APP_SECRET=
 ```
 
 ### Override models
@@ -137,13 +139,19 @@ MetaCatalog::catalog()->syncFromApi($account);
 ### AccountService
 
 ```php
-// Create an account
+// Manual flow (auto-fetches name + syncs catalogs)
 $account = MetaCatalog::account()->create([
-    'name'               => 'My Business',
     'meta_business_id'   => '123456789',
-    'app_id'             => 'APP_ID',        // stored encrypted
-    'app_secret'         => 'APP_SECRET',    // stored encrypted
-    'access_token'       => 'EAABwz...',     // stored encrypted
+    'access_token'       => 'EAABwz...',
+]);
+
+// Get the auto-fetched business name
+echo $account->name; // "My Business Name" (from Meta API)
+
+// Embedded Signup flow (WhatsApp OAuth)
+$account = MetaCatalog::account()->createFromEmbeddedSignup([
+    'business_id'       => '2729063490586005',
+    'code'              => 'AQBhlXsctMxJYb...',
 ]);
 
 // Find / list
