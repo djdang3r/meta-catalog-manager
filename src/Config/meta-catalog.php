@@ -15,7 +15,7 @@ return [
         'base_url' => env('META_CATALOG_API_URL', 'https://graph.facebook.com'),
 
         // Versión de la Graph API
-        'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v22.0'),
+        'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v25.0'),
 
         // Tiempo de espera para las solicitudes (en segundos)
         'timeout' => env('META_CATALOG_API_TIMEOUT', 30),

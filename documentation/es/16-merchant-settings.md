@@ -22,7 +22,7 @@ GET /{business_id}/commerce_merchant_settings
 
 Con curl:
 ```bash
-curl "https://graph.facebook.com/v22.0/{BUSINESS_ID}/commerce_merchant_settings?access_token={TOKEN}"
+curl "https://graph.facebook.com/v25.0/{BUSINESS_ID}/commerce_merchant_settings?access_token={TOKEN}"
 ```
 
 ---

@@ -20,7 +20,7 @@ Esto crea `config/meta-catalog.php` en tu proyecto.
     'base_url' => env('META_CATALOG_API_URL', 'https://graph.facebook.com'),
 
     // Versión de la Graph API. Recomendado: mantener actualizado
-    'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v22.0'),
+    'graph_version' => env('META_CATALOG_GRAPH_VERSION', 'v25.0'),
 
     // Timeout en segundos para cada request
     'timeout' => env('META_CATALOG_API_TIMEOUT', 30),

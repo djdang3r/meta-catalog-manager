@@ -96,7 +96,7 @@ class InstallMetaCatalogManager extends Command
         $this->newLine();
         $this->line('  Agrega las siguientes variables a tu .env:');
         $this->newLine();
-        $this->line('  META_CATALOG_GRAPH_VERSION=v22.0');
+        $this->line('  META_CATALOG_GRAPH_VERSION=v25.0');
         $this->line('  META_CATALOG_LOG_CHANNEL=meta-catalog');
         $this->line('  META_CATALOG_AUTO_MIGRATIONS=true');
         $this->newLine();

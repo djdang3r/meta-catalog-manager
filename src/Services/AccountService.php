@@ -77,7 +77,7 @@ class AccountService
     {
         return new ApiClient(
             config('meta-catalog.api.base_url', 'https://graph.facebook.com'),
-            config('meta-catalog.api.graph_version', 'v22.0'),
+            config('meta-catalog.api.graph_version', 'v25.0'),
             $account->access_token,
             config('meta-catalog.api.timeout', 30)
         );

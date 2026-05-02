@@ -21,7 +21,7 @@ class ApiClient
 
     /**
      * @param string $baseUrl    URL base de la API (ej: https://graph.facebook.com)
-     * @param string $version    Versión del API (ej: v22.0)
+     * @param string $version    Versión del API (ej: v25.0)
      * @param string $accessToken Token de acceso del System User de Meta
      * @param int    $timeout    Tiempo de espera en segundos
      */
