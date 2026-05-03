@@ -12,24 +12,14 @@ use function Laravel\Prompts\warning;
 
 class InstallMetaCatalogManager extends Command
 {
-    /**
-     * El nombre y firma del comando.
-     */
     protected $signature = 'meta-catalog:install {--force : Sobrescribir archivos existentes}';
 
-    /**
-     * La descripción del comando.
-     */
     protected $description = 'Instalación guiada de Meta Catalog Manager';
 
-    /**
-     * Ejecutar el comando.
-     */
     public function handle(): int
     {
         intro('META CATALOG MANAGER — Asistente de instalación');
 
-        // 1. Verificar APP_KEY
         if (empty(config('app.key'))) {
             warning('No se encontró APP_KEY en tu configuración.');
             note('Ejecuta: php artisan key:generate');
@@ -37,7 +27,6 @@ class InstallMetaCatalogManager extends Command
             return self::FAILURE;
         }
 
-        // 2. Publicar config, logging y migrations
         spin(function () {
             $this->callSilent('vendor:publish', [
                 '--tag'   => 'meta-catalog-config',
@@ -51,13 +40,11 @@ class InstallMetaCatalogManager extends Command
 
         $this->components->info('Configuración y migraciones publicadas.');
 
-        // 3. Merge canal de logging (manual, NO automático)
         note('El paquete usa el canal de log "stack" por defecto.');
         note('Para logs separados, ejecutá manualmente:');
         $this->line("  php artisan meta-catalog:merge-logging");
         note('⚠️  Este comando modifica config/logging.php. Asegurate de tener backup.');
 
-        // 4. Preguntar si correr migraciones
         $runMigrations = confirm(
             label: '¿Deseas correr las migraciones ahora?',
             default: true,
@@ -70,7 +57,6 @@ class InstallMetaCatalogManager extends Command
             }, 'Ejecutando migraciones...');
         }
 
-        // 5. Storage link (necesario para servir imágenes descargadas)
         $runStorageLink = confirm(
             label: '¿Crear el enlace simbólico de storage (storage:link)?',
             default: true,
@@ -98,21 +84,13 @@ class InstallMetaCatalogManager extends Command
         $publishRoutes = confirm(
             label: '¿Publicar ruta de webhook para personalizarla?',
             default: false,
-            hint: 'Copia meta_catalog_webhook.php a routes/. Si no, se usa la ruta por defecto del paquete.'
+            hint: 'Copia meta_catalog_webhook.php a routes/. Si no, se usa la ruta del paquete.'
         );
 
         if ($publishRoutes) {
-            spin(function () {
-                $this->callSilent('vendor:publish', [
-                    '--tag'   => 'meta-catalog-routes',
-                    '--force' => $this->option('force'),
-                ]);
-            }, 'Publicando ruta de webhook...');
-
-            $this->components->info('Ruta de webhook publicada en routes/meta_catalog_webhook.php');
+            $this->publishWebhookRoute();
         }
 
-        // Instrucciones .env
         outro('INSTALACIÓN COMPLETADA');
 
         $this->newLine();
@@ -155,15 +133,9 @@ class InstallMetaCatalogManager extends Command
 
         if (str_contains($content, 'validateCsrfTokens')) {
             $updated = preg_replace(
-                "/'meta-catalog-webhook\/\*',\s*/",
-                '',
-                $content
-            );
-
-            $updated = preg_replace(
                 '/(validateCsrfTokens\s*\(\s*except\s*:\s*\[)(\n?\s*|\s*)/',
                 "$1\n            '{$webhookPath}', ",
-                $updated,
+                $content,
                 1
             );
 
@@ -194,5 +166,33 @@ class InstallMetaCatalogManager extends Command
             $this->line("  En App\\Http\\Middleware\\VerifyCsrfToken agregá:");
             $this->line("  protected \$except = ['{$webhookPath}'];");
         }
+    }
+
+    protected function publishWebhookRoute(): void
+    {
+        $publishedPath = base_path('routes/meta_catalog_webhook.php');
+
+        if (file_exists($publishedPath) && !$this->option('force')) {
+            $overwrite = confirm(
+                label: 'Ya existe routes/meta_catalog_webhook.php. ¿Sobrescribir?',
+                default: false,
+                hint: 'Si elegís No, se usará el archivo existente (ya publicado).'
+            );
+
+            if (!$overwrite) {
+                $this->components->info('Se conserva la ruta de webhook existente.');
+
+                return;
+            }
+        }
+
+        spin(function () {
+            $this->callSilent('vendor:publish', [
+                '--tag'   => 'meta-catalog-routes',
+                '--force' => true,
+            ]);
+        }, 'Publicando ruta de webhook...');
+
+        $this->components->info('Ruta de webhook publicada en routes/meta_catalog_webhook.php');
     }
 }
