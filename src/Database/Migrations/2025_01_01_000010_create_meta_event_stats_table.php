@@ -23,6 +23,7 @@ return new class extends Migration
             $table->bigInteger('unique_unmatched_content_ids')->default(0);
             $table->timestamps();
 
+            $table->softDeletes();
             $table->foreign('meta_event_source_id')
                 ->references('id')
                 ->on('meta_event_sources')

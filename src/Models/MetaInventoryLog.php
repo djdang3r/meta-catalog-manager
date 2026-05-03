@@ -4,12 +4,13 @@ namespace ScriptDevelop\MetaCatalogManager\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use ScriptDevelop\MetaCatalogManager\Enums\InventoryChangeSource;
 use ScriptDevelop\MetaCatalogManager\Traits\GeneratesUlid;
 
 class MetaInventoryLog extends Model
 {
-    use GeneratesUlid;
+    use GeneratesUlid, SoftDeletes;
 
     protected $table      = 'meta_inventory_logs';
     protected $primaryKey = 'id';

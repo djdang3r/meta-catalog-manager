@@ -28,6 +28,7 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
 
+            $table->softDeletes();
             $table->foreign('meta_product_feed_id')
                 ->references('id')
                 ->on('meta_product_feeds')

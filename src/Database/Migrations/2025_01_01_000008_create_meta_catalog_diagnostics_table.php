@@ -21,6 +21,7 @@ return new class extends Migration
             $table->timestamp('fetched_at')->nullable();
             $table->timestamps();
 
+            $table->softDeletes();
             $table->foreign('meta_catalog_id')
                 ->references('id')
                 ->on('meta_catalogs')

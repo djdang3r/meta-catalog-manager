@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('last_check_results')->nullable();
             $table->timestamps();
 
+            $table->softDeletes();
             $table->foreign('meta_catalog_id')
                 ->references('id')
                 ->on('meta_catalogs')

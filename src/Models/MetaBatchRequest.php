@@ -4,13 +4,14 @@ namespace ScriptDevelop\MetaCatalogManager\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use ScriptDevelop\MetaCatalogManager\Enums\BatchRequestStatus;
 use ScriptDevelop\MetaCatalogManager\Enums\CatalogItemType;
 use ScriptDevelop\MetaCatalogManager\Traits\GeneratesUlid;
 
 class MetaBatchRequest extends Model
 {
-    use GeneratesUlid;
+    use GeneratesUlid, SoftDeletes;
 
     protected $table = 'meta_batch_requests';
     protected $primaryKey = 'id';
