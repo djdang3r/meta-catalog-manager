@@ -26,9 +26,14 @@ php artisan meta-catalog:install
 El wizard realiza las siguientes acciones:
 
 1. **Publica el archivo de configuración** en `config/meta-catalog.php`
-2. **Publica las migraciones** en `database/migrations/` (si elegís control manual)
-3. **Ejecuta las migraciones** automáticamente (si tenés `META_CATALOG_AUTO_MIGRATIONS=true`)
-4. Muestra un resumen de los modelos y servicios disponibles
+2. **Pregunta si publicar migraciones** — opcional, no necesario si usás auto_load (default: false)
+3. **Pregunta si ejecutar migraciones** — independiente de publicarlas (default: sí si auto_load)
+4. **Pregunta si crear storage:link** — para servir imágenes descargadas
+5. **Pregunta si excluir webhook de CSRF** — para recibir webhooks de Meta
+6. **Pregunta si publicar ruta de webhook** — para personalizarla
+7. Muestra las variables de entorno sugeridas
+
+> Las migraciones se cargan automáticamente desde el paquete (`auto_load=true`). No necesitás publicarlas. Podés publicarlas solo si querés revisarlas o modificarlas.
 
 ## Variables de Entorno
 
