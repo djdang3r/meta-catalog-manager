@@ -3,6 +3,7 @@
 namespace ScriptDevelop\MetaCatalogManager\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use ScriptDevelop\MetaCatalogManager\Enums\AccountStatus;
 use ScriptDevelop\MetaCatalogManager\MetaCatalogApi\ApiClient;
 use ScriptDevelop\MetaCatalogManager\MetaCatalogApi\Endpoints;
@@ -25,11 +26,27 @@ class AccountService
 
         $account = $modelClass::create($data);
 
+        $logChannel = config('meta-catalog.logging.channel', 'stack');
+
         if (empty($data['name'])) {
-            $this->syncBusinessInfo($account);
+            try {
+                $this->syncBusinessInfo($account);
+            } catch (\Exception $e) {
+                Log::channel($logChannel)->warning('MetaCatalog: could not sync business info during account creation', [
+                    'meta_business_id' => $account->meta_business_id,
+                    'error'            => $e->getMessage(),
+                ]);
+            }
         }
 
-        $this->syncCatalogsIfNeeded($account);
+        try {
+            $this->syncCatalogsIfNeeded($account);
+        } catch (\Exception $e) {
+            Log::channel($logChannel)->warning('MetaCatalog: could not sync catalogs during account creation', [
+                'meta_business_id' => $account->meta_business_id,
+                'error'            => $e->getMessage(),
+            ]);
+        }
 
         return $account->fresh();
     }
@@ -37,22 +54,46 @@ class AccountService
     public function createFromEmbeddedSignup(array $data): MetaBusinessAccount
     {
         $modelClass = config('meta-catalog.models.meta_business_account', MetaBusinessAccount::class);
+        $logChannel = config('meta-catalog.logging.channel', 'stack');
 
-        $accessToken = '';
+        if (empty($data['code'])) {
+            throw new \InvalidArgumentException('MetaCatalog: code is required for embedded signup. The frontend must provide a valid OAuth code.');
+        }
 
-        if (!empty($data['code'])) {
-            $accessToken = $this->exchangeCodeForToken($data['code']);
+        $accessToken = $this->exchangeCodeForToken($data['code']);
+
+        if (empty($accessToken)) {
+            throw new \RuntimeException('MetaCatalog: failed to exchange code for access token. The code may have expired (valid for 30s).');
         }
 
         $businessId = $data['business_id'] ?? $data['meta_business_id'] ?? '';
+
+        if (empty($businessId)) {
+            throw new \InvalidArgumentException('MetaCatalog: business_id is required for embedded signup.');
+        }
 
         $account = $modelClass::create([
             'meta_business_id' => $businessId,
             'access_token'     => $accessToken,
         ]);
 
-        $this->syncBusinessInfo($account);
-        $this->syncCatalogsIfNeeded($account);
+        try {
+            $this->syncBusinessInfo($account);
+        } catch (\Exception $e) {
+            Log::channel($logChannel)->warning('MetaCatalog: could not sync business info during embedded signup', [
+                'business_id' => $businessId,
+                'error'       => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $this->syncCatalogsIfNeeded($account);
+        } catch (\Exception $e) {
+            Log::channel($logChannel)->warning('MetaCatalog: could not sync catalogs during embedded signup', [
+                'business_id' => $businessId,
+                'error'       => $e->getMessage(),
+            ]);
+        }
 
         return $account->fresh();
     }
