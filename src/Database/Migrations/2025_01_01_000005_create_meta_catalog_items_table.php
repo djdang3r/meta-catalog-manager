@@ -87,6 +87,7 @@ return new class extends Migration
             $table->json('errors')->nullable();
 
             $table->timestamps();
+            $table->softDeletes();
             $table->foreign('meta_catalog_id')
                 ->references('id')
                 ->on('meta_catalogs')
