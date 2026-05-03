@@ -51,16 +51,11 @@ class InstallMetaCatalogManager extends Command
 
         $this->components->info('Configuración y migraciones publicadas.');
 
-        // 3. Merge canal de logging en logging.php
-        $mergeLogging = confirm(
-            label: '¿Agregar el canal "meta-catalog" al logging.php del proyecto?',
-            default: true,
-            hint: 'Esto permite ver los logs en storage/logs/meta-catalog.log'
-        );
-
-        if ($mergeLogging) {
-            $this->call('meta-catalog:merge-logging');
-        }
+        // 3. Merge canal de logging (manual, NO automático)
+        note('El paquete usa el canal de log "stack" por defecto.');
+        note('Para logs separados, ejecutá manualmente:');
+        $this->line("  php artisan meta-catalog:merge-logging");
+        note('⚠️  Este comando modifica config/logging.php. Asegurate de tener backup.');
 
         // 4. Preguntar si correr migraciones
         $runMigrations = confirm(

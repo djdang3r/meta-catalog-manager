@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2026-05-02
+
+### Fixed
+- Install wizard: `merge-logging` ahora es opt-in (default: false) para evitar modificar `logging.php` del proyecto host
+- Documentado: el paquete usa `stack` como canal de log por defecto; el canal `meta-catalog` se configura manualmente
+
+## [1.0.9] - 2026-05-02
+
+### Fixed
+- `MergeMetaCatalogLogging` — reemplazado regex `[^\]]*` por conteo de profundidad de brackets
+
 ## [1.0.8] - 2026-05-02
 
 ### Added
