@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2026-05-02
+
+### Added
+- Webhook support for Meta Catalog events (`product_feed`, `items_batch`)
+- `Contracts\WebhookProcessorInterface` — pluggable webhook processing
+- `Services\WebhookProcessors\DefaultWebhookProcessor` — verificación de firma, challenge y dispatch de eventos
+- `Http\Controllers\MetaCatalogWebhookController` — endpoint `POST /meta-catalog-webhook`
+- `routes/meta_catalog_webhook.php` — ruta publicable y personalizable
+- `meta-catalog.webhook` config section (`processor`, `verify_token`)
+- CSRF exclusion automática en `bootstrap/app.php` desde el install wizard
+- `InstallMetaCatalogManager` — paso de CSRF + opción de publicar ruta de webhook
+
 ## [1.0.7] - 2026-05-02
 
 ### Added

@@ -139,6 +139,22 @@ class MetaCatalogServiceProvider extends ServiceProvider
 
         // Binding de la Facade
         $this->app->bind('meta-catalog', MetaCatalogManager::class);
+
+        $this->app->bind(
+            \ScriptDevelop\MetaCatalogManager\Contracts\WebhookProcessorInterface::class,
+            function () {
+                $processorClass = config(
+                    'meta-catalog.webhook.processor',
+                    \ScriptDevelop\MetaCatalogManager\Services\WebhookProcessors\DefaultWebhookProcessor::class
+                );
+
+                if (class_exists($processorClass)) {
+                    return new $processorClass();
+                }
+
+                return new \ScriptDevelop\MetaCatalogManager\Services\WebhookProcessors\DefaultWebhookProcessor();
+            }
+        );
     }
 
     public function boot(): void
@@ -162,6 +178,12 @@ class MetaCatalogServiceProvider extends ServiceProvider
         if (config('meta-catalog.migrations.auto_load', true)) {
             $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
         }
+
+        $this->publishes([
+            __DIR__ . '/../routes/meta_catalog_webhook.php' => base_path('routes/meta_catalog_webhook.php'),
+        ], 'meta-catalog-routes');
+
+        $this->loadRoutesFrom(__DIR__ . '/../routes/meta_catalog_webhook.php');
 
         // Registrar comandos de consola
         if ($this->app->runningInConsole()) {

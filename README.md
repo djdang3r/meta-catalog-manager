@@ -411,6 +411,34 @@ $overrides = MetaCatalog::product()->getOverrideDetails($productItemId, $account
 
 ---
 
+## Webhooks
+
+The package exposes a webhook endpoint at `POST /meta-catalog-webhook` for receiving real-time notifications from Meta:
+
+| Topic | Trigger | Description |
+|---|---|---|
+| `product_feed` | Feed upload completes | Data from a Product Feed has persisted |
+| `items_batch` | Batch completes | Product Catalog Items Batch session has persisted |
+
+### Customizing the Webhook Processor
+
+```php
+// Implement your own processor
+class MyWebhookProcessor implements \ScriptDevelop\MetaCatalogManager\Contracts\WebhookProcessorInterface
+{
+    public function handle(Request $request): Response|JsonResponse { ... }
+    public function verifyWebhook(Request $request, string $verifyToken): Response { ... }
+    public function processProductFeed(array $payload): void { ... }
+    public function processItemsBatch(array $payload): void { ... }
+}
+
+// Set in .env
+META_CATALOG_WEBHOOK_PROCESSOR=\\App\\Webhooks\\MyWebhookProcessor
+META_CATALOG_WEBHOOK_VERIFY_TOKEN=your_secret_token
+```
+
+---
+
 ## Database Schema
 
 | Table | Description |

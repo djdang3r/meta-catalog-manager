@@ -46,6 +46,24 @@ META_CATALOG_APP_ID=236484624622562
 META_CATALOG_APP_SECRET=614fc2afde15eee07a26b2fe3eaee9b9
 ```
 
+### `webhook` — Configuración de Webhooks
+
+El paquete expone un endpoint `POST /meta-catalog-webhook` para recibir notificaciones de Meta (product_feed, items_batch). Podés personalizar el procesador implementando `WebhookProcessorInterface`.
+
+```php
+'webhook' => [
+    'processor' => env(
+        'META_CATALOG_WEBHOOK_PROCESSOR',
+        \ScriptDevelop\MetaCatalogManager\Services\WebhookProcessors\DefaultWebhookProcessor::class
+    ),
+    'verify_token' => env('META_CATALOG_WEBHOOK_VERIFY_TOKEN', ''),
+],
+```
+
+```env
+META_CATALOG_WEBHOOK_VERIFY_TOKEN=mi_token_secreto_webhook
+```
+
 ### `models` — Override de Modelos
 
 Podés reemplazar cualquier modelo del paquete con tu propia clase. Útil cuando necesitás agregar relaciones, métodos o comportamientos específicos de tu aplicación:
