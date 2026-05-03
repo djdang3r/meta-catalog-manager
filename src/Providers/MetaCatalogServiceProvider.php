@@ -183,7 +183,11 @@ class MetaCatalogServiceProvider extends ServiceProvider
             __DIR__ . '/../routes/meta_catalog_webhook.php' => base_path('routes/meta_catalog_webhook.php'),
         ], 'meta-catalog-routes');
 
-        $this->loadRoutesFrom(__DIR__ . '/../routes/meta_catalog_webhook.php');
+        $routeFile = $this->resolveRouteFile();
+
+        if ($routeFile && file_exists($routeFile)) {
+            $this->loadRoutesFrom($routeFile);
+        }
 
         // Registrar comandos de consola
         if ($this->app->runningInConsole()) {
@@ -191,9 +195,18 @@ class MetaCatalogServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Registra automáticamente todos los comandos del paquete.
-     */
+    protected function resolveRouteFile(): string
+    {
+        $publishedPath = base_path('routes/meta_catalog_webhook.php');
+        $packagePath   = __DIR__ . '/../routes/meta_catalog_webhook.php';
+
+        if (file_exists($publishedPath)) {
+            return $publishedPath;
+        }
+
+        return $packagePath;
+    }
+
     protected function registerPackageCommands(): void
     {
         $commandFiles = glob(__DIR__ . '/../Console/Commands/*.php') ?: [];
