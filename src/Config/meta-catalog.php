@@ -31,6 +31,11 @@ return [
         'app_secret' => env('META_CATALOG_APP_SECRET', ''),
     ],
 
+    'webhook' => [
+        'processor'    => env('META_CATALOG_WEBHOOK_PROCESSOR', \ScriptDevelop\MetaCatalogManager\Services\WebhookProcessors\DefaultWebhookProcessor::class),
+        'verify_token' => env('META_CATALOG_WEBHOOK_VERIFY_TOKEN', ''),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Modelos Personalizados
