@@ -31,7 +31,8 @@ return new class extends Migration
             $table->timestamp('downloaded_at')->nullable();
 
             $table->timestamps();
-        });
+
+            $table->softDeletes();        });
 
         if (DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE meta_catalog_images ADD CONSTRAINT chk_image_type CHECK (type IN ('product_main', 'product_additional'))");

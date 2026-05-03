@@ -22,6 +22,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
+            $table->softDeletes();
             $table->foreign('meta_catalog_item_id')
                 ->references('id')
                 ->on('meta_catalog_items')
