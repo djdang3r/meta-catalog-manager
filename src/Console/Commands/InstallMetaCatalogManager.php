@@ -32,30 +32,57 @@ class InstallMetaCatalogManager extends Command
                 '--tag'   => 'meta-catalog-config',
                 '--force' => $this->option('force'),
             ]);
-            $this->callSilent('vendor:publish', [
-                '--tag'   => 'meta-catalog-migrations',
-                '--force' => $this->option('force'),
-            ]);
-        }, 'Publicando configuración y migraciones...');
+        }, 'Publicando configuración...');
 
-        $this->components->info('Configuración y migraciones publicadas.');
+        $this->components->info('Configuración publicada en config/meta-catalog.php.');
 
-        note('El paquete usa el canal de log "stack" por defecto.');
-        note('Para logs separados, ejecutá manualmente:');
-        $this->line("  php artisan meta-catalog:merge-logging");
-        note('⚠️  Este comando modifica config/logging.php. Asegurate de tener backup.');
+        note('Las migraciones se cargan automáticamente (auto_load=true).');
+        note('No necesitás publicarlas para que funcionen.');
+
+        $publishMigrations = confirm(
+            label: '¿Publicar migraciones en database/migrations/?',
+            default: false,
+            hint: 'Copiarlas a tu proyecto para revisarlas o modificarlas. No necesario si auto_load=true.'
+        );
+
+        if ($publishMigrations) {
+            spin(function () {
+                $this->callSilent('vendor:publish', [
+                    '--tag'   => 'meta-catalog-migrations',
+                    '--force' => $this->option('force'),
+                ]);
+            }, 'Publicando migraciones...');
+
+            $this->components->info('Migraciones publicadas en database/migrations/');
+        }
+
+        $autoLoad = config('meta-catalog.migrations.auto_load', true);
+
+        if (!$autoLoad && !$publishMigrations) {
+            warning('⚠️  auto_load=false y no publicaste las migraciones.');
+            warning('   Las migraciones no estarán disponibles. Habilitá una de las dos opciones.');
+            note('   Ejecutá: php artisan vendor:publish --tag=meta-catalog-migrations');
+            note('   O configurá: META_CATALOG_AUTO_MIGRATIONS=true en tu .env');
+        }
 
         $runMigrations = confirm(
-            label: '¿Deseas correr las migraciones ahora?',
-            default: true,
-            hint: 'Usa las flechas [↑/↓] para seleccionar y Enter para confirmar.'
+            label: '¿Ejecutar las migraciones ahora?',
+            default: $autoLoad || $publishMigrations,
+            hint: 'Aplica las tablas a la base de datos.'
         );
 
         if ($runMigrations) {
             spin(function () {
                 $this->call('migrate');
             }, 'Ejecutando migraciones...');
+
+            $this->components->info('Migraciones ejecutadas.');
         }
+
+        note('El paquete usa el canal de log "stack" por defecto.');
+        note('Para logs separados, ejecutá manualmente:');
+        $this->line("  php artisan meta-catalog:merge-logging");
+        note('⚠️  Este comando modifica config/logging.php. Asegurate de tener backup.');
 
         $runStorageLink = confirm(
             label: '¿Crear el enlace simbólico de storage (storage:link)?',
