@@ -28,7 +28,10 @@ class ProductService
         $account = $catalog->account;
         $client  = $this->accountService->getApiClient($account);
 
-        $query = ['limit' => $limit];
+        $query = [
+            'limit'  => $limit,
+            'fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,brand,category,item_group_id,gtin,manufacturer_part_number',
+        ];
         if ($after !== null) {
             $query['after'] = $after;
         }
