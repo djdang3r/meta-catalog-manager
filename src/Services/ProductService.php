@@ -127,7 +127,7 @@ class ProductService
             Endpoints::GET_PRODUCT,
             Endpoints::product($productItemId),
             null,
-            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,brand,category,item_group_id,gtin,mpn']
+            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,brand,category,item_group_id,gtin,manufacturer_part_number']
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -337,6 +337,7 @@ class ProductService
             'custom_label_3'          => 'custom_label_3',
             'custom_label_4'          => 'custom_label_4',
             'gtin'                    => 'gtin',
+            'manufacturer_part_number' => 'mpn',
             'mpn'                     => 'mpn',
             'visibility'              => 'visibility',
             'shipping'                => 'shipping',
