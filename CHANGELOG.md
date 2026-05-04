@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [1.0.20] - 2026-05-03
+
+### Fixed
+- `ProductService::syncFromApi()`: check `additional_image_urls` field first (catalog list endpoint), fallback to `additional_image_link` (single product endpoint). Additional images were not being stored because only `additional_image_link` was checked.
+
 ## [1.0.19] - 2026-05-03
 
 ### Fixed
