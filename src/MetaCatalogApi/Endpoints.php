@@ -108,6 +108,13 @@ class Endpoints
     const GET_PAGE_CATALOGS   = '{page_id}/owned_product_catalogs';
 
     // -------------------------------------------------------------------------
+    // WhatsApp Business Account (WABA) Endpoints
+    // -------------------------------------------------------------------------
+    const GET_CLIENT_WABAS       = '{business_id}/client_whatsapp_business_accounts';
+    const CONNECT_CATALOG_TO_WABA = '{whatsapp_business_account_id}/product_catalogs';
+    const GET_WABA_CATALOGS      = '{whatsapp_business_account_id}/product_catalogs';
+
+    // -------------------------------------------------------------------------
     // Helper methods — retornan el array de params para buildUrl()
     // -------------------------------------------------------------------------
 
@@ -189,5 +196,13 @@ class Endpoints
     public static function item(string $id): array
     {
         return ['item_id' => $id];
+    }
+
+    /**
+     * Parámetros para endpoints de WhatsApp Business Account.
+     */
+    public static function whatsappBusinessAccount(string $id): array
+    {
+        return ['whatsapp_business_account_id' => $id];
     }
 }

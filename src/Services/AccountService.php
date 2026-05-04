@@ -171,6 +171,24 @@ class AccountService
         }
     }
 
+    public function getWhatsAppAccounts(string $businessId, string $accessToken): array
+    {
+        $client = new ApiClient(
+            config('meta-catalog.api.base_url', 'https://graph.facebook.com'),
+            config('meta-catalog.api.graph_version', 'v25.0'),
+            $accessToken,
+            config('meta-catalog.api.timeout', 30)
+        );
+
+        $response = $client->request(
+            'GET',
+            Endpoints::GET_CLIENT_WABAS,
+            Endpoints::business($businessId)
+        );
+
+        return $response['data'] ?? [];
+    }
+
     public function exchangeCodeForToken(string $code): string
     {
         $client = new ApiClient(

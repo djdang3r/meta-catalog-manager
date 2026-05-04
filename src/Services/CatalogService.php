@@ -228,4 +228,46 @@ class CatalogService
             'vertical'                 => $data['vertical'] ?? 'commerce',
         ]);
     }
+
+    /**
+     * Conecta un catálogo a una cuenta de WhatsApp Business.
+     * POST /{waba_id}/product_catalogs
+     */
+    public function connectToWaba(MetaBusinessAccount $account, string $wabaId, string $catalogMetaId): bool
+    {
+        $client = $this->accountService->getApiClient($account);
+
+        $response = $client->request(
+            'POST',
+            Endpoints::CONNECT_CATALOG_TO_WABA,
+            Endpoints::whatsappBusinessAccount($wabaId),
+            ['catalog_id' => $catalogMetaId]
+        );
+
+        return ($response['success'] ?? false) === true;
+    }
+
+    /**
+     * Verifica si un catálogo está conectado a una WABA.
+     * GET /{waba_id}/product_catalogs
+     */
+    public function validateWabaConnection(MetaBusinessAccount $account, string $wabaId, string $catalogMetaId): bool
+    {
+        $client = $this->accountService->getApiClient($account);
+
+        $response = $client->request(
+            'GET',
+            Endpoints::GET_WABA_CATALOGS,
+            Endpoints::whatsappBusinessAccount($wabaId)
+        );
+
+        $catalogs = $response['data'] ?? [];
+        foreach ($catalogs as $catalog) {
+            if (($catalog['id'] ?? '') === $catalogMetaId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

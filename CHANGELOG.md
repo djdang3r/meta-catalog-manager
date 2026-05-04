@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [1.0.22] - 2026-05-03
+
+### Added
+- `AccountService::getWhatsAppAccounts(businessId, token)`: list WhatsApp Business Accounts under a Business Manager via `GET /{business_id}/client_whatsapp_business_accounts`
+- `CatalogService::connectToWaba(account, wabaId, catalogMetaId)`: connect a catalog to a WABA via `POST /{waba_id}/product_catalogs`
+- `CatalogService::validateWabaConnection(account, wabaId, catalogMetaId)`: verify catalog-WABA link via `GET /{waba_id}/product_catalogs`
+- `Endpoints::whatsappBusinessAccount()`: helper for WABA endpoint URL construction
+- New endpoint constants: `GET_CLIENT_WABAS`, `CONNECT_CATALOG_TO_WABA`, `GET_WABA_CATALOGS`
+
 ## [1.0.21] - 2026-05-03
 
 ### Fixed
