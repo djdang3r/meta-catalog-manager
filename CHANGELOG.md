@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [1.0.23] - 2026-05-04
+
+### Changed
+- `ProductService`: `currency` now stored in its own column instead of concatenated with `price`. Requires migration adding `currency` column to `meta_catalog_items`.
+
 ## [1.0.22] - 2026-05-03
 
 ### Added
