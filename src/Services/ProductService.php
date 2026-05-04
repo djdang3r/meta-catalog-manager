@@ -177,10 +177,11 @@ class ProductService
                         'fb_product_category'           => $item['fb_product_category'] ?? null,
                         'google_product_category'       => $item['google_product_category'] ?? null,
 
-                        // Pricing (strip currency symbols and non-breaking spaces from Meta API)
+                        // Pricing
                         'price'                         => $this->cleanPrice($item['price'] ?? null),
                         'sale_price'                    => $this->cleanPrice($item['sale_price'] ?? null),
                         'sale_price_effective_date'     => $item['sale_price_effective_date'] ?? null,
+                        'currency'                      => $item['currency'] ?? null,
 
                         // Availability
                         'availability'                  => $item['availability'] ?? 'in stock',
@@ -378,11 +379,12 @@ class ProductService
             $columns['link'] = $data['link'];
         }
 
-        // price: si viene separado (int + currency) → "1999 USD"; si ya viene combinado lo deja tal cual
+        // price y currency: almacenar por separado
         if (array_key_exists('price', $data)) {
-            $columns['price'] = isset($data['currency'])
-                ? $data['price'] . ' ' . $data['currency']
-                : $data['price'];
+            $columns['price'] = $data['price'];
+        }
+        if (array_key_exists('currency', $data)) {
+            $columns['currency'] = $data['currency'];
         }
 
         return $columns;
