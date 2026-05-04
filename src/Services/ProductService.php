@@ -177,9 +177,9 @@ class ProductService
                         'fb_product_category'           => $item['fb_product_category'] ?? null,
                         'google_product_category'       => $item['google_product_category'] ?? null,
 
-                        // Pricing
-                        'price'                         => $item['price'] ?? null,
-                        'sale_price'                    => $item['sale_price'] ?? null,
+                        // Pricing (strip currency symbols and non-breaking spaces from Meta API)
+                        'price'                         => $this->cleanPrice($item['price'] ?? null),
+                        'sale_price'                    => $this->cleanPrice($item['sale_price'] ?? null),
                         'sale_price_effective_date'     => $item['sale_price_effective_date'] ?? null,
 
                         // Availability
@@ -304,6 +304,18 @@ class ProductService
     // =========================================================================
     // Helpers
     // =========================================================================
+
+    /**
+     * Clean price string from Meta API (removes currency symbols, spaces, etc).
+     */
+    private function cleanPrice(?string $price): ?string
+    {
+        if ($price === null) {
+            return null;
+        }
+
+        return trim(preg_replace('/[^0-9.]/', '', $price));
+    }
 
     /**
      * Mapea los campos de la API de Meta a las columnas de la base de datos.
