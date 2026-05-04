@@ -189,11 +189,15 @@ class ProductService
 
                         // Images
                         'image_url'                     => $item['image_url'] ?? null,
-                        'additional_image_urls'         => isset($item['additional_image_link'])
-                            ? (is_array($item['additional_image_link'])
-                                ? $item['additional_image_link']
-                                : explode(',', $item['additional_image_link']))
-                            : null,
+                        'additional_image_urls'         => isset($item['additional_image_urls'])
+                            ? (is_array($item['additional_image_urls'])
+                                ? $item['additional_image_urls']
+                                : explode(',', $item['additional_image_urls']))
+                            : (isset($item['additional_image_link'])
+                                ? (is_array($item['additional_image_link'])
+                                    ? $item['additional_image_link']
+                                    : explode(',', $item['additional_image_link']))
+                                : null),
 
                         // Links
                         'link'                          => $item['url'] ?? $item['link'] ?? null,
