@@ -1,6 +1,9 @@
 # Changelog
 
 
+
+- Added `auto_sync_enabled` + `last_synced_at` migration to `meta_catalogs`
+- Added `currency` column migration to `meta_catalog_items`
 ## [1.0.23] - 2026-05-04
 
 ### Changed
