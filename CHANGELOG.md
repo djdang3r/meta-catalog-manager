@@ -2,8 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.0.18] - 2026-05-03
+
+### Fixed
+- `ProductService::getSingle()`: corrected field name `mpn` → `manufacturer_part_number` matching the canonical Graph API field name. Prevents 400 Bad Request "(#100) Tried accessing nonexisting field" errors
+- `ProductService::mapApiDataToColumns()`: added `manufacturer_part_number` → `mpn` mapping for API-to-DB column translation
+- `AccountService::create()` and `createFromEmbeddedSignup()`: API calls (sync business info, sync catalogs) are now best-effort — account creation no longer fails if Meta API is unavailable
 
 ## [1.0.10] - 2026-05-02
 
