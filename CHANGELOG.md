@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [1.0.21] - 2026-05-03
+
+### Fixed
+- `ProductService`: added `cleanPrice()` helper to strip currency symbols and non-breaking spaces from Meta API price fields. Prevents `number_format()` TypeError when price comes formatted as `$ 100.000`.
+
 ## [1.0.20] - 2026-05-03
 
 ### Fixed
