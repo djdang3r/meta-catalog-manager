@@ -1,5 +1,10 @@
 # Changelog
 
+
+## [1.0.19] - 2026-05-03
+
+### Fixed
+- `ProductService::getFromApi()`: added `fields` parameter to catalog products list request to include `image_url` and `additional_image_urls`. Images were not being returned by Meta without explicit field request.
 All notable changes to this project will be documented in this file.
 
 ## [1.0.18] - 2026-05-03
