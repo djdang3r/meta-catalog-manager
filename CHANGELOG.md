@@ -1,10 +1,11 @@
 # Changelog
 
+## [1.0.25] - 2026-05-05
 
+### Fixed
+- `CatalogService::getDetail()`: campos `fields` se pasaban como body en vez de query parameter en GET request. La API de Meta ignoraba el body, retornando respuestas sin el campo `name`, lo que causaba que los catálogos se guardaran con nombres genéricos como "#123456" en vez del nombre real.
 
-- Added `auto_sync_enabled` + `last_synced_at` migration to `meta_catalogs`
-- Added `currency` column migration to `meta_catalog_items`
-## [1.0.23] - 2026-05-04
+## [1.0.24] - 2026-05-04
 
 ### Changed
 - `ProductService`: `currency` now stored in its own column instead of concatenated with `price`. Requires migration adding `currency` column to `meta_catalog_items`.
