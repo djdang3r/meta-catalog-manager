@@ -2,7 +2,10 @@
 
 namespace ScriptDevelop\MetaCatalogManager\Services;
 
+use Illuminate\Support\Facades\Log;
 use ScriptDevelop\MetaCatalogManager\Models\MetaBusinessAccount;
+use ScriptDevelop\MetaCatalogManager\Models\MetaCatalog;
+use ScriptDevelop\MetaCatalogManager\Enums\CatalogVertical;
 use ScriptDevelop\MetaCatalogManager\Services\GenericFeedService;
 use ScriptDevelop\MetaCatalogManager\Services\ImageService;
 use ScriptDevelop\MetaCatalogManager\Services\InventoryService;
@@ -177,10 +180,30 @@ class MetaCatalogManager
 
         // 2. Por cada catálogo, sincronizar todo lo que cuelga de él
         foreach ($catalogs as $catalog) {
-            // Productos + historial de inventario
-            $logsBefore = \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::where('meta_catalog_id', $catalog->id)->count();
-            $summary['products'] += $this->productService->syncFromApi($catalog);
-            $summary['inventory_logs'] += \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::where('meta_catalog_id', $catalog->id)->count() - $logsBefore;
+            // Productos + historial de inventario (solo catálogos commerce)
+            $isCommerce = $this->isCommerceCatalog($catalog);
+            if ($isCommerce) {
+                try {
+                    $logsBefore = \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::where('meta_catalog_id', $catalog->id)->count();
+                    $summary['products'] += $this->productService->syncFromApi($catalog);
+                    $summary['inventory_logs'] += \ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog::where('meta_catalog_id', $catalog->id)->count() - $logsBefore;
+
+                    // Product Sets (solo commerce)
+                    $productSets = $this->productSetService->syncFromApi($catalog);
+                    $summary['product_sets'] += $productSets->count();
+
+                    // Ofertas (solo commerce)
+                    $offers = $this->offerService->syncFromApi($catalog);
+                    $summary['offers'] += $offers->count();
+                } catch (\Exception $e) {
+                    Log::channel(config('meta-catalog.logging.channel', 'stack'))
+                        ->warning('syncDeep: skipping product sync for catalog', [
+                            'catalog_id' => $catalog->meta_catalog_id,
+                            'vertical' => $catalog->vertical?->value ?? $catalog->vertical,
+                            'error' => $e->getMessage(),
+                        ]);
+                }
+            }
 
             // Feeds + uploads de cada feed
             $feeds = $this->feedService->syncFromApi($catalog);
@@ -190,14 +213,6 @@ class MetaCatalogManager
                 $uploads = $this->feedService->syncUploads($feed);
                 $summary['feed_uploads'] += $uploads->count();
             }
-
-            // Product Sets
-            $productSets = $this->productSetService->syncFromApi($catalog);
-            $summary['product_sets'] += $productSets->count();
-
-            // Ofertas
-            $offers = $this->offerService->syncFromApi($catalog);
-            $summary['offers'] += $offers->count();
 
             // Diagnósticos
             $diagnostics = $this->diagnosticsService->syncFromApi($catalog);
@@ -214,5 +229,17 @@ class MetaCatalogManager
         }
 
         return $summary;
+    }
+
+    /**
+     * Verifica si un catálogo es de tipo "commerce" (el único que soporta productos).
+     */
+    protected function isCommerceCatalog(MetaCatalog $catalog): bool
+    {
+        $vertical = $catalog->vertical instanceof CatalogVertical
+            ? $catalog->vertical->value
+            : (string) $catalog->vertical;
+
+        return $vertical === 'commerce' || $vertical === CatalogVertical::COMMERCE->value;
     }
 }

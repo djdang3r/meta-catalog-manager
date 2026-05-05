@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.26] - 2026-05-05
+
+### Fixed
+- `MetaCatalogManager::syncDeep()`: catálogos no-commerce (hotels, flights, vehicles, etc.) causaban error 400 "Unknown method" al intentar sincronizar productos. Ahora `syncDeep` verifica el vertical y solo sincroniza productos, product sets y ofertas para catálogos tipo `commerce`.
+
 ## [1.0.25] - 2026-05-05
 
 ### Fixed
