@@ -15,6 +15,11 @@
 ### Changed
 - `ProductService`: `currency` now stored in its own column instead of concatenated with `price`. Requires migration adding `currency` column to `meta_catalog_items`.
 
+## [1.0.23] - 2026-05-03
+
+### Changed
+- `ProductService`: currency separated from price field into dedicated `currency` column in `meta_catalog_items` table
+
 ## [1.0.22] - 2026-05-03
 
 ### Added
@@ -42,10 +47,50 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.18] - 2026-05-03
 
+### Added
+- `CatalogService::getConnectedChannels()` — returns which channels (WhatsApp, Facebook, Instagram) are linked to a catalog
+
+## [1.0.17] - 2026-05-02
+
+### Added
+- Safe upgrade migration `2026_05_03_000000_add_soft_deletes_to_existing_tables.php` — adds `deleted_at` column to 8 tables using `Schema::hasColumn()` guard to prevent duplicate column errors on upgrades
+
+## [1.0.16] - 2026-05-02
+
 ### Fixed
-- `ProductService::getSingle()`: corrected field name `mpn` → `manufacturer_part_number` matching the canonical Graph API field name. Prevents 400 Bad Request "(#100) Tried accessing nonexisting field" errors
-- `ProductService::mapApiDataToColumns()`: added `manufacturer_part_number` → `mpn` mapping for API-to-DB column translation
-- `AccountService::create()` and `createFromEmbeddedSignup()`: API calls (sync business info, sync catalogs) are now best-effort — account creation no longer fails if Meta API is unavailable
+- `CatalogVertical` enum: removed `services` (not a valid Meta vertical). Official list is 16 values sourced from Meta PHP SDK `ProductCatalogVerticalValues.php`
+- Migration CHECK constraint and column size updated to match all 16 official verticals
+
+## [1.0.15] - 2026-05-02
+
+### Fixed
+- All 14 models now consistently use `SoftDeletes` trait
+- All 14 migrations now include `$table->softDeletes()` (MySQL 8 + PostgreSQL 18 compatible)
+
+## [1.0.14] - 2026-05-02
+
+### Fixed
+- `MetaCatalogItem` migration: added missing `$table->softDeletes()` to match model's `SoftDeletes` trait
+
+## [1.0.13] - 2026-05-02
+
+### Changed
+- `AccountService::createFromEmbeddedSignup()` — validates `code` and `business_id` before creating account; never creates account without valid `access_token`
+- All `Log::` calls use configured meta-catalog logging channel consistently
+- Best-effort pattern for secondary API calls (name fetch, catalog sync)
+
+## [1.0.12] - 2026-05-02
+
+### Changed
+- Install wizard: separated migration publishing from migration execution as independent choices
+- Warning when `auto_load=false` and migrations are not published
+
+## [1.0.11] - 2026-05-02
+
+### Fixed
+- `MetaCatalogServiceProvider::resolveRouteFile()` — prefers user-published webhook route over package default
+- Install wizard: route publishing validates existing file, asks before overwriting
+- CSRF exclusion: validates existing entries in `bootstrap/app.php` before modifying
 
 ## [1.0.10] - 2026-05-02
 
