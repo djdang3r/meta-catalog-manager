@@ -271,4 +271,56 @@ class CatalogService
 
         return false;
     }
+
+    public function getConnectedChannels(MetaBusinessAccount $account, MetaCatalog $catalog): array
+    {
+        $client = $this->accountService->getApiClient($account);
+        $channels = [
+            'whatsapp'  => [],
+            'facebook'  => [],
+            'instagram' => [],
+        ];
+
+        $catalogInfo = $client->request(
+            'GET',
+            Endpoints::GET_CATALOG,
+            Endpoints::catalog($catalog->meta_catalog_id),
+            query: ['fields' => 'id,name,connected_page_ids']
+        );
+
+        $pageIds = $catalogInfo['connected_page_ids'] ?? [];
+        if ($pageIds) {
+            $channels['facebook'] = array_map(fn ($id) => ['page_id' => $id], $pageIds);
+        }
+
+        try {
+            $wabas = $client->request(
+                'GET',
+                Endpoints::GET_CLIENT_WABAS,
+                Endpoints::business($account->meta_business_id)
+            );
+
+            foreach (($wabas['data'] ?? []) as $waba) {
+                $connectedCatalogs = $client->request(
+                    'GET',
+                    Endpoints::GET_WABA_CATALOGS,
+                    Endpoints::whatsappBusinessAccount($waba['id'])
+                );
+
+                foreach (($connectedCatalogs['data'] ?? []) as $connected) {
+                    if (($connected['id'] ?? '') === $catalog->meta_catalog_id) {
+                        $channels['whatsapp'][] = [
+                            'waba_id' => $waba['id'],
+                            'name'    => $waba['name'] ?? null,
+                        ];
+                        break;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            //
+        }
+
+        return $channels;
+    }
 }
