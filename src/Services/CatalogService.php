@@ -281,16 +281,20 @@ class CatalogService
             'instagram' => [],
         ];
 
-        $catalogInfo = $client->request(
-            'GET',
-            Endpoints::GET_CATALOG,
-            Endpoints::catalog($catalog->meta_catalog_id),
-            query: ['fields' => 'id,name,connected_page_ids']
-        );
-
-        $pageIds = $catalogInfo['connected_page_ids'] ?? [];
-        if ($pageIds) {
-            $channels['facebook'] = array_map(fn ($id) => ['page_id' => $id], $pageIds);
+        // Facebook Pages (best-effort — connected_page_ids may not exist on all catalogs)
+        try {
+            $catalogInfo = $client->request(
+                'GET',
+                Endpoints::GET_CATALOG,
+                Endpoints::catalog($catalog->meta_catalog_id),
+                query: ['fields' => 'id,name,connected_page_ids']
+            );
+            $pageIds = $catalogInfo['connected_page_ids'] ?? [];
+            if ($pageIds) {
+                $channels['facebook'] = array_map(fn ($id) => ['page_id' => $id], $pageIds);
+            }
+        } catch (\Exception $e) {
+            // connected_page_ids not available — skip Facebook channels
         }
 
         try {
