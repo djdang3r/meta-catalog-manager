@@ -301,8 +301,9 @@ class CatalogService
             }
         }
 
-        foreach ($wabaList as $waba) {
-            $connectedCatalogs = $client->request(
+        try {
+            foreach ($wabaList as $waba) {
+                $connectedCatalogs = $client->request(
                     'GET',
                     Endpoints::GET_WABA_CATALOGS,
                     Endpoints::whatsappBusinessAccount($waba['id'])
