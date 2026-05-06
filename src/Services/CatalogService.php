@@ -272,7 +272,7 @@ class CatalogService
         return false;
     }
 
-    public function getConnectedChannels(MetaBusinessAccount $account, MetaCatalog $catalog): array
+    public function getConnectedChannels(MetaBusinessAccount $account, MetaCatalog $catalog, array $extraWabaIds = []): array
     {
         $client = $this->accountService->getApiClient($account);
         $channels = [
@@ -281,16 +281,28 @@ class CatalogService
             'instagram' => [],
         ];
 
-        // WhatsApp: check each WABA for connected catalogs
-        try {
-            $wabas = $client->request(
-                'GET',
-                Endpoints::GET_CLIENT_WABAS,
-                Endpoints::business($account->meta_business_id)
-            );
+        // Collect WABAs from BM + extra IDs
+        $wabaList = [];
 
-            foreach (($wabas['data'] ?? []) as $waba) {
-                $connectedCatalogs = $client->request(
+        // WABAs from this Business Manager
+        try {
+            $bmWabas = $client->request('GET', Endpoints::GET_CLIENT_WABAS, Endpoints::business($account->meta_business_id));
+            foreach (($bmWabas['data'] ?? []) as $waba) {
+                $wabaList[] = $waba;
+            }
+        } catch (\Exception $e) {
+            //
+        }
+
+        // Extra WABAs from other BMs
+        foreach ($extraWabaIds as $extraId) {
+            if (!in_array($extraId, array_column($wabaList, 'id'))) {
+                $wabaList[] = ['id' => $extraId, 'name' => null];
+            }
+        }
+
+        foreach ($wabaList as $waba) {
+            $connectedCatalogs = $client->request(
                     'GET',
                     Endpoints::GET_WABA_CATALOGS,
                     Endpoints::whatsappBusinessAccount($waba['id'])
