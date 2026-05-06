@@ -128,7 +128,7 @@ class CatalogService
             Endpoints::GET_CATALOG,
             Endpoints::catalog($metaCatalogId),
             null,
-            ['fields' => 'id,name,vertical,currency,timezone_id,product_count,is_catalog_segment']
+            ['fields' => 'id,name,vertical,timezone_id,product_count,is_catalog_segment']
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog', MetaCatalog::class);
