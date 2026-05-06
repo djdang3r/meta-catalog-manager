@@ -302,6 +302,7 @@ class CatalogService
         }
 
         try {
+            try {
             foreach ($wabaList as $waba) {
                 $connectedCatalogs = $client->request(
                     'GET',
