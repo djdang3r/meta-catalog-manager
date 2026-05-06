@@ -100,6 +100,7 @@ class Endpoints
     // Commerce Merchant Settings
     // -------------------------------------------------------------------------
     const MERCHANT_SETTINGS = '{commerce_merchant_settings_id}';
+    const CREATE_MERCHANT_SETTINGS = '{business_id}/commerce_merchant_settings';
 
     // -------------------------------------------------------------------------
     // Page-Owned Catalogs

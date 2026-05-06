@@ -12,6 +12,27 @@ class MerchantSettingsService
     ) {}
 
     /**
+     * Crea un nuevo commerce_merchant_settings para el Business Manager.
+     *
+     * POST /{business_id}/commerce_merchant_settings
+     *
+     * @param MetaBusinessAccount $account
+     * @param array $data Campos: name (requerido), onsite_checkout_enabled (opcional)
+     * @return array Respuesta cruda de la API con el ID del nuevo merchant settings
+     */
+    public function create(MetaBusinessAccount $account, array $data): array
+    {
+        $client = $this->accountService->getApiClient($account);
+
+        return $client->request(
+            'POST',
+            Endpoints::CREATE_MERCHANT_SETTINGS,
+            Endpoints::business($account->meta_business_id),
+            $data
+        );
+    }
+
+    /**
      * Obtiene la configuración del commerce merchant.
      *
      * GET /{commerce_merchant_settings_id}
