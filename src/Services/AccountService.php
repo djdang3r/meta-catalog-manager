@@ -247,4 +247,98 @@ class AccountService
 
         return $account;
     }
+
+    /**
+     * Asigna el System User al catálogo para que tenga acceso de gestión.
+     */
+    public function assignSystemUserToCatalog(MetaBusinessAccount $account, string $catalogMetaId): void
+    {
+        $client = $this->getApiClient($account);
+        $appId = config('meta-catalog.oauth.app_id');
+        $appSecret = config('meta-catalog.oauth.app_secret');
+
+        if (!$appId || !$appSecret || !$account->access_token) {
+            return;
+        }
+
+        // Debug token to get system user ID
+        $debugClient = new ApiClient(
+            config('meta-catalog.api.base_url', 'https://graph.facebook.com'),
+            config('meta-catalog.api.graph_version', 'v25.0'),
+            "{$appId}|{$appSecret}",
+            config('meta-catalog.api.timeout', 30)
+        );
+
+        $debugResp = $debugClient->request(
+            'GET',
+            Endpoints::DEBUG_TOKEN,
+            [],
+            null,
+            ['input_token' => $account->access_token]
+        );
+
+        $systemUserId = $debugResp['data']['user_id'] ?? null;
+        if (!$systemUserId) {
+            return;
+        }
+
+        // Assign system user to catalog
+        $client->request(
+            'POST',
+            Endpoints::ASSIGNED_USERS,
+            Endpoints::catalog($catalogMetaId),
+            null,
+            [
+                'user'     => $systemUserId,
+                'tasks'    => json_encode(['MANAGE', 'ADVERTISE']),
+                'business' => $account->meta_business_id,
+            ]
+        );
+
+        Log::channel(config('meta-catalog.logging.channel', 'stack'))
+            ->info('System user assigned to catalog', [
+                'catalog_id'     => $catalogMetaId,
+                'system_user_id' => $systemUserId,
+            ]);
+    }
+
+    /**
+     * Debug: inspecciona los permisos/scopes de un access token vía Meta API.
+     */
+    public function debugAccessToken(string $accessToken): array
+    {
+        $appId = config('meta-catalog.oauth.app_id');
+        $appSecret = config('meta-catalog.oauth.app_secret');
+
+        if (!$appId || !$appSecret) {
+            return ['error' => 'App credentials not configured'];
+        }
+
+        $client = new ApiClient(
+            config('meta-catalog.api.base_url', 'https://graph.facebook.com'),
+            config('meta-catalog.api.graph_version', 'v25.0'),
+            "{$appId}|{$appSecret}",
+            config('meta-catalog.api.timeout', 30)
+        );
+
+        $response = $client->request(
+            'GET',
+            Endpoints::DEBUG_TOKEN,
+            [],
+            null,
+            ['input_token' => $accessToken]
+        );
+
+        $data = $response['data'] ?? [];
+
+        return [
+            'is_valid'   => $data['is_valid'] ?? false,
+            'app_id'     => $data['app_id'] ?? 'unknown',
+            'type'       => $data['type'] ?? 'unknown',
+            'scopes'     => $data['scopes'] ?? [],
+            'expires_at' => isset($data['expires_at']) && $data['expires_at'] > 0
+                ? date('Y-m-d H:i:s', $data['expires_at'])
+                : 'never',
+        ];
+    }
 }

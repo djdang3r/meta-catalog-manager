@@ -109,8 +109,10 @@ class Endpoints
     const GET_PAGE_CATALOGS   = '{page_id}/owned_product_catalogs';
 
     // -------------------------------------------------------------------------
-    // WhatsApp Business Account (WABA) Endpoints
+    // Token Debug & User Assignment
     // -------------------------------------------------------------------------
+    const DEBUG_TOKEN    = 'debug_token';
+    const ASSIGNED_USERS = '{catalog_id}/assigned_users';
     const GET_CLIENT_WABAS       = '{business_id}/client_whatsapp_business_accounts';
     const CONNECT_CATALOG_TO_WABA = '{whatsapp_business_account_id}/product_catalogs';
     const GET_WABA_CATALOGS      = '{whatsapp_business_account_id}/product_catalogs';
