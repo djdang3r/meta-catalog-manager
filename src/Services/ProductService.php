@@ -340,7 +340,15 @@ class ProductService
             $price = str_replace(',', '.', $price);
         } elseif ($lastDot > $lastComma) {
             // Dot is decimal: "100,000.00" → remove commas
-            $price = str_replace(',', '', $price);
+            // BUT if no comma exists and digits after dot = 3, it's a thousand separator (e.g. "120.000")
+            $digitsAfterDot = strlen(substr($price, $lastDot + 1));
+            if ($lastComma === false && $digitsAfterDot === 3) {
+                // Thousand separator: "120.000" → "120000" → ×100
+                $price = str_replace('.', '', $price);
+            } else {
+                // Decimal: "19.99" → keep dot
+                $price = str_replace(',', '', $price);
+            }
         } else {
             // No decimal separator found, just thousand separators: "100.000" → "100000"
             $price = str_replace(['.', ','], '', $price);
