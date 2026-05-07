@@ -30,7 +30,7 @@ class ProductService
 
         $query = [
             'limit'  => $limit,
-            'fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,brand,category,item_group_id,gtin,manufacturer_part_number',
+            'fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,gtin,manufacturer_part_number',
         ];
         if ($after !== null) {
             $query['after'] = $after;
@@ -130,7 +130,7 @@ class ProductService
             Endpoints::GET_PRODUCT,
             Endpoints::product($productItemId),
             null,
-            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,brand,category,item_group_id,gtin,manufacturer_part_number']
+            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,gtin,manufacturer_part_number']
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -200,16 +200,35 @@ class ProductService
                 if (array_key_exists('condition', $item))               $fillData['condition'] = $item['condition'];
                 if (array_key_exists('quantity_to_sell_on_facebook', $item)) $fillData['quantity_to_sell_on_facebook'] = $item['quantity_to_sell_on_facebook'];
 
-                // Images — only update when Meta actually returns them
-                if (array_key_exists('image_url', $item))               $fillData['image_url'] = $item['image_url'];
-                if (array_key_exists('additional_image_urls', $item)) {
-                    $fillData['additional_image_urls'] = is_array($item['additional_image_urls'])
-                        ? $item['additional_image_urls']
-                        : explode(',', $item['additional_image_urls']);
-                } elseif (array_key_exists('additional_image_link', $item)) {
-                    $fillData['additional_image_urls'] = is_array($item['additional_image_link'])
-                        ? $item['additional_image_link']
-                        : explode(',', $item['additional_image_link']);
+                // Images — use the `images` field (array of JSON strings) as canonical source.
+                // It contains ALL product images (main + additional) regardless of how they were added.
+                // Fall back to explicit image_url/additional_image_urls fields if `images` not present.
+                if (array_key_exists('images', $item) && is_array($item['images']) && !empty($item['images'])) {
+                    $allUrls = [];
+                    foreach ($item['images'] as $imgJson) {
+                        $decoded = is_string($imgJson) ? json_decode($imgJson, true) : $imgJson;
+                        if (isset($decoded['url']) && !empty($decoded['url'])) {
+                            $allUrls[] = $decoded['url'];
+                        }
+                    }
+                    if (!empty($allUrls)) {
+                        $fillData['image_url'] = $allUrls[0];
+                        $fillData['additional_image_urls'] = count($allUrls) > 1 ? array_slice($allUrls, 1) : [];
+                    }
+                } else {
+                    // Fallback to explicit fields
+                    if (array_key_exists('image_url', $item)) {
+                        $fillData['image_url'] = $item['image_url'];
+                    }
+                    if (array_key_exists('additional_image_urls', $item)) {
+                        $fillData['additional_image_urls'] = is_array($item['additional_image_urls'])
+                            ? $item['additional_image_urls']
+                            : explode(',', $item['additional_image_urls']);
+                    } elseif (array_key_exists('additional_image_link', $item)) {
+                        $fillData['additional_image_urls'] = is_array($item['additional_image_link'])
+                            ? $item['additional_image_link']
+                            : explode(',', $item['additional_image_link']);
+                    }
                 }
 
                 // Links
