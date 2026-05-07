@@ -311,11 +311,45 @@ class ProductService
      */
     private function cleanPrice(?string $price): ?string
     {
-        if ($price === null) {
+        if ($price === null || $price === '') {
             return null;
         }
 
-        return trim(preg_replace('/[^0-9.]/', '', $price));
+        // Strip currency symbols, spaces, non-breaking spaces
+        $price = trim(preg_replace('/[\$\s\x{00A0}]/u', '', $price));
+
+        // Detect format:
+        // - "100.000,00" (LatAm: dot=thousands, comma=decimal) → 10000000
+        // - "100,000.00" (US: comma=thousands, dot=decimal) → 10000000  
+        // - "100.000"    (Colombian: dot=thousands, no decimals) → 10000000
+        // - "1999"       (already in cents/smallest unit) → 1999
+
+        // If already a plain integer without any separators, return as-is
+        if (preg_match('/^[0-9]+$/', $price)) {
+            return $price;
+        }
+
+        // Remove thousand separators (dots or commas)
+        // Detect which is decimal separator by last occurrence
+        $lastComma = strrpos($price, ',');
+        $lastDot = strrpos($price, '.');
+
+        if ($lastComma > $lastDot) {
+            // Comma is decimal: "100.000,00" → remove dots, replace comma with dot
+            $price = str_replace('.', '', $price);
+            $price = str_replace(',', '.', $price);
+        } elseif ($lastDot > $lastComma) {
+            // Dot is decimal: "100,000.00" → remove commas
+            $price = str_replace(',', '', $price);
+        } else {
+            // No decimal separator found, just thousand separators: "100.000" → "100000"
+            $price = str_replace(['.', ','], '', $price);
+        }
+
+        // Convert to float and multiply by 100 to get cents
+        $cents = (int) round(((float) $price) * 100);
+
+        return (string) $cents;
     }
 
     /**
