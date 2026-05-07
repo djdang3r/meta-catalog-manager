@@ -222,10 +222,8 @@ class MetaCatalogManager
             $eventStats = $this->eventStatsService->syncFromApi($catalog);
             $summary['event_stats'] += $eventStats->count();
 
-            // Imágenes (opt-in via META_CATALOG_AUTO_DOWNLOAD_IMAGES)
-            if (config('meta-catalog.media.auto_download', false)) {
-                $summary['images'] += $this->imageService->downloadForCatalog($catalog);
-            }
+            // Imágenes
+            $summary['images'] += $this->imageService->downloadForCatalog($catalog);
         }
 
         return $summary;

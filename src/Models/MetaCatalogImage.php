@@ -76,6 +76,16 @@ class MetaCatalogImage extends Model
 
     public function isDownloaded(): bool
     {
-        return $this->downloaded_at !== null;
+        if ($this->downloaded_at === null) {
+            return false;
+        }
+
+        if (!empty($this->local_path)) {
+            $disk = config('meta-catalog.media.disk', 'public');
+
+            return \Illuminate\Support\Facades\Storage::disk($disk)->exists($this->local_path);
+        }
+
+        return false;
     }
 }
