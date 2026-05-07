@@ -137,9 +137,10 @@ class ImageService
                 $ext      = $this->mimeToExtension($mimeType);
                 $fileName = Str::ulid() . '.' . $ext;
 
-                // Organize by catalog: meta-catalog/products/{catalog_id}/{type}/{file}
+                // Organize by catalog and product: meta-catalog/{catalog_id}/products/{product_id}/{file}
                 $catalogId = $image->item->meta_catalog_id ?? 'unknown';
-                $path     = $basePath . '/' . $catalogId . '/' . $fileName;
+                $productId = $image->item->meta_product_item_id ?? $image->item->id ?? 'unknown';
+                $path = 'meta-catalog/' . $catalogId . '/products/' . $productId . '/' . $fileName;
 
                 Storage::disk($disk)->put($path, $binary);
 
