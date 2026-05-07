@@ -158,78 +158,94 @@ class ProductService
             $items    = $response['data'] ?? [];
 
             foreach ($items as $item) {
-                $localItem = $modelClass::updateOrCreate(
+                $localItem = $modelClass::firstOrNew(
                     [
                         'meta_catalog_id' => $catalog->id,
                         'retailer_id'     => $item['retailer_id'] ?? $item['id'],
                     ],
+                    // Defaults only for new records
                     [
-                        // Core
-                        'meta_product_item_id'          => $item['id'] ?? null,
-                        'title'                         => $item['name'] ?? null,
-                        'description'                   => $item['description'] ?? null,
-                        'rich_text_description'         => $item['rich_text_description'] ?? null,
-                        'brand'                         => $item['brand'] ?? null,
-
-                        // Categories
-                        'category'                      => $item['category'] ?? null,
-                        'product_type'                  => $item['product_type'] ?? null,
-                        'fb_product_category'           => $item['fb_product_category'] ?? null,
-                        'google_product_category'       => $item['google_product_category'] ?? null,
-
-                        // Pricing
-                        'price'                         => $this->cleanPrice($item['price'] ?? null),
-                        'sale_price'                    => $this->cleanPrice($item['sale_price'] ?? null),
-                        'sale_price_effective_date'     => $item['sale_price_effective_date'] ?? null,
-                        'currency'                      => $item['currency'] ?? null,
-
-                        // Availability
-                        'availability'                  => $item['availability'] ?? 'in stock',
-                        'condition'                     => $item['condition'] ?? 'new',
-                        'quantity_to_sell_on_facebook'  => $item['quantity_to_sell_on_facebook'] ?? null,
-
-                        // Images
-                        'image_url'                     => $item['image_url'] ?? null,
-                        'additional_image_urls'         => isset($item['additional_image_urls'])
-                            ? (is_array($item['additional_image_urls'])
-                                ? $item['additional_image_urls']
-                                : explode(',', $item['additional_image_urls']))
-                            : (isset($item['additional_image_link'])
-                                ? (is_array($item['additional_image_link'])
-                                    ? $item['additional_image_link']
-                                    : explode(',', $item['additional_image_link']))
-                                : null),
-
-                        // Links
-                        'link'                          => $item['url'] ?? $item['link'] ?? null,
-                        'mobile_link'                   => $item['mobile_link'] ?? null,
-
-                        // Variants
-                        'item_group_id'                 => $item['item_group_id'] ?? null,
-                        'color'                         => $item['color'] ?? null,
-                        'size'                          => $item['size'] ?? null,
-                        'gender'                        => $item['gender'] ?? null,
-                        'age_group'                     => $item['age_group'] ?? null,
-                        'material'                      => $item['material'] ?? null,
-                        'pattern'                       => $item['pattern'] ?? null,
-
-                        // Labels
-                        'custom_label_0'                => $item['custom_label_0'] ?? null,
-                        'custom_label_1'                => $item['custom_label_1'] ?? null,
-                        'custom_label_2'                => $item['custom_label_2'] ?? null,
-                        'custom_label_3'                => $item['custom_label_3'] ?? null,
-                        'custom_label_4'                => $item['custom_label_4'] ?? null,
-                        'internal_label'                => $item['internal_label'] ?? null,
-
-                        // Identifiers
-                        'gtin'                          => $item['gtin'] ?? null,
-                        'mpn'                           => $item['mpn'] ?? null,
-
-                        // Status
-                        'visibility'                    => $item['visibility'] ?? 'published',
-                        'review_status'                 => $item['review_status'] ?? null,
+                        'meta_product_item_id' => $item['id'] ?? null,
+                        'availability'         => 'in stock',
+                        'condition'            => 'new',
+                        'visibility'           => 'published',
                     ]
                 );
+
+                // Build fill data ONLY from fields present in the API response.
+                // Fields NOT returned by Meta are preserved (not overwritten with null).
+                $fillData = [];
+
+                // Core (always present via fields param)
+                if (array_key_exists('id', $item))                      $fillData['meta_product_item_id'] = $item['id'];
+                if (array_key_exists('name', $item))                    $fillData['title'] = $item['name'];
+                if (array_key_exists('description', $item))             $fillData['description'] = $item['description'];
+                if (array_key_exists('rich_text_description', $item))   $fillData['rich_text_description'] = $item['rich_text_description'];
+                if (array_key_exists('brand', $item))                   $fillData['brand'] = $item['brand'];
+
+                // Categories
+                if (array_key_exists('category', $item))                $fillData['category'] = $item['category'];
+                if (array_key_exists('product_type', $item))            $fillData['product_type'] = $item['product_type'];
+                if (array_key_exists('fb_product_category', $item))     $fillData['fb_product_category'] = $item['fb_product_category'];
+                if (array_key_exists('google_product_category', $item)) $fillData['google_product_category'] = $item['google_product_category'];
+
+                // Pricing
+                if (array_key_exists('price', $item))                   $fillData['price'] = $this->cleanPrice($item['price']);
+                if (array_key_exists('sale_price', $item))              $fillData['sale_price'] = $this->cleanPrice($item['sale_price']);
+                if (array_key_exists('sale_price_effective_date', $item)) $fillData['sale_price_effective_date'] = $item['sale_price_effective_date'];
+                if (array_key_exists('currency', $item))                $fillData['currency'] = $item['currency'];
+
+                // Availability / Condition
+                if (array_key_exists('availability', $item))            $fillData['availability'] = $item['availability'];
+                if (array_key_exists('condition', $item))               $fillData['condition'] = $item['condition'];
+                if (array_key_exists('quantity_to_sell_on_facebook', $item)) $fillData['quantity_to_sell_on_facebook'] = $item['quantity_to_sell_on_facebook'];
+
+                // Images — only update when Meta actually returns them
+                if (array_key_exists('image_url', $item))               $fillData['image_url'] = $item['image_url'];
+                if (array_key_exists('additional_image_urls', $item)) {
+                    $fillData['additional_image_urls'] = is_array($item['additional_image_urls'])
+                        ? $item['additional_image_urls']
+                        : explode(',', $item['additional_image_urls']);
+                } elseif (array_key_exists('additional_image_link', $item)) {
+                    $fillData['additional_image_urls'] = is_array($item['additional_image_link'])
+                        ? $item['additional_image_link']
+                        : explode(',', $item['additional_image_link']);
+                }
+
+                // Links
+                if (array_key_exists('url', $item) || array_key_exists('link', $item))
+                    $fillData['link'] = $item['url'] ?? $item['link'] ?? null;
+                if (array_key_exists('mobile_link', $item))             $fillData['mobile_link'] = $item['mobile_link'];
+
+                // Variants
+                if (array_key_exists('item_group_id', $item))           $fillData['item_group_id'] = $item['item_group_id'];
+                if (array_key_exists('color', $item))                   $fillData['color'] = $item['color'];
+                if (array_key_exists('size', $item))                    $fillData['size'] = $item['size'];
+                if (array_key_exists('gender', $item))                  $fillData['gender'] = $item['gender'];
+                if (array_key_exists('age_group', $item))               $fillData['age_group'] = $item['age_group'];
+                if (array_key_exists('material', $item))                $fillData['material'] = $item['material'];
+                if (array_key_exists('pattern', $item))                 $fillData['pattern'] = $item['pattern'];
+
+                // Labels
+                if (array_key_exists('custom_label_0', $item))          $fillData['custom_label_0'] = $item['custom_label_0'];
+                if (array_key_exists('custom_label_1', $item))          $fillData['custom_label_1'] = $item['custom_label_1'];
+                if (array_key_exists('custom_label_2', $item))          $fillData['custom_label_2'] = $item['custom_label_2'];
+                if (array_key_exists('custom_label_3', $item))          $fillData['custom_label_3'] = $item['custom_label_3'];
+                if (array_key_exists('custom_label_4', $item))          $fillData['custom_label_4'] = $item['custom_label_4'];
+                if (array_key_exists('internal_label', $item))          $fillData['internal_label'] = $item['internal_label'];
+
+                // Identifiers
+                if (array_key_exists('gtin', $item))                    $fillData['gtin'] = $item['gtin'];
+                if (array_key_exists('mpn', $item))                     $fillData['mpn'] = $item['mpn'];
+
+                // Status
+                if (array_key_exists('visibility', $item))              $fillData['visibility'] = $item['visibility'];
+                if (array_key_exists('review_status', $item))           $fillData['review_status'] = $item['review_status'];
+
+                // Apply only the fields Meta actually returned
+                if (!empty($fillData)) {
+                    $localItem->fill($fillData)->save();
+                }
 
                 // Registrar cambio de inventario si la cantidad cambió o es un producto nuevo
                 $newQty = $localItem->quantity_to_sell_on_facebook;
