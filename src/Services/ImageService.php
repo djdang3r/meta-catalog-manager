@@ -136,7 +136,10 @@ class ImageService
                 $mimeType = $this->detectMimeType($binary, $image->original_url);
                 $ext      = $this->mimeToExtension($mimeType);
                 $fileName = Str::ulid() . '.' . $ext;
-                $path     = $basePath . '/' . $fileName;
+
+                // Organize by catalog: meta-catalog/products/{catalog_id}/{type}/{file}
+                $catalogId = $image->item->meta_catalog_id ?? 'unknown';
+                $path     = $basePath . '/' . $catalogId . '/' . $fileName;
 
                 Storage::disk($disk)->put($path, $binary);
 
