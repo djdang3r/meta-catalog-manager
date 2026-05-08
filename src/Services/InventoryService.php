@@ -137,7 +137,14 @@ class InventoryService
 
         // Actualizar el campo local si se conoce el nuevo valor
         if ($newQuantity !== null) {
-            $item->update(['quantity_to_sell_on_facebook' => $newQuantity]);
+            $update = ['quantity_to_sell_on_facebook' => $newQuantity];
+            // Auto-update availability based on stock
+            if ($newQuantity === 0 && $item->availability !== 'out of stock') {
+                $update['availability'] = 'out of stock';
+            } elseif ($newQuantity > 0 && $item->availability === 'out of stock') {
+                $update['availability'] = 'in stock';
+            }
+            $item->update($update);
         }
 
         return $log;
