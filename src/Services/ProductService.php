@@ -30,7 +30,7 @@ class ProductService
 
         $query = [
             'limit'  => $limit,
-            'fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,gtin,manufacturer_part_number',
+            'fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,manufacturer_part_number',
         ];
         if ($after !== null) {
             $query['after'] = $after;
@@ -50,6 +50,11 @@ class ProductService
      */
     public function createSingle(MetaCatalog $catalog, array $data): MetaCatalogItem
     {
+        // Si el producto tiene campos de variante, usar items_batch (el endpoint /products no almacena item_group_id)
+        if ($this->hasVariantFields($data)) {
+            return $this->createViaItemsBatch($catalog, $data);
+        }
+
         $account = $catalog->account;
         $client  = $this->accountService->getApiClient($account);
 
@@ -130,7 +135,7 @@ class ProductService
             Endpoints::GET_PRODUCT,
             Endpoints::product($productItemId),
             null,
-            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,gtin,manufacturer_part_number']
+            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,manufacturer_part_number']
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -428,6 +433,7 @@ class ProductService
             'age_group'               => 'age_group',
             'material'                => 'material',
             'pattern'                 => 'pattern',
+            'additional_variant_attribute' => 'additional_variant_attribute',
             'custom_label_0'          => 'custom_label_0',
             'custom_label_1'          => 'custom_label_1',
             'custom_label_2'          => 'custom_label_2',
@@ -492,5 +498,95 @@ class ProductService
             null,
             $query
         );
+    }
+
+    /**
+     * Detecta si el producto tiene campos de variante que requieren items_batch.
+     */
+    private function hasVariantFields(array $data): bool
+    {
+        $variantKeys = ['item_group_id', 'color', 'size', 'gender', 'age_group', 'material', 'pattern', 'additional_variant_attribute'];
+        foreach ($variantKeys as $key) {
+            if (!empty($data[$key])) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Crea un producto vía items_batch (necesario para item_group_id y variantes).
+     */
+    private function createViaItemsBatch(MetaCatalog $catalog, array $data): MetaCatalogItem
+    {
+        $account = $catalog->account;
+        $client  = $this->accountService->getApiClient($account);
+
+        $payload = [
+            'item_type' => 'PRODUCT_ITEM',
+            'requests' => [[
+                'method'      => 'CREATE',
+                'retailer_id' => $data['retailer_id'],
+                'data'        => $data,
+            ]],
+        ];
+
+        $response = $client->request(
+            'POST',
+            Endpoints::ITEMS_BATCH,
+            Endpoints::catalog($catalog->meta_catalog_id),
+            $payload
+        );
+
+        $handles = $response['handles'] ?? [];
+        if (empty($handles)) {
+            throw new \RuntimeException('items_batch: no handles returned — ' . json_encode($response));
+        }
+
+        $productId = $this->waitForBatchHandle($catalog, $handles[0]);
+
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+
+        return $modelClass::create(array_merge(
+            $this->mapApiDataToColumns($data),
+            [
+                'meta_catalog_id'      => $catalog->id,
+                'meta_product_item_id' => $productId,
+            ]
+        ));
+    }
+
+    /**
+     * Polling del estado de un handle de items_batch hasta que se complete.
+     */
+    private function waitForBatchHandle(MetaCatalog $catalog, string $handle, int $maxRetries = 15, int $delayMs = 2000): string
+    {
+        $client = $this->accountService->getApiClient($catalog->account);
+
+        for ($i = 0; $i < $maxRetries; $i++) {
+            usleep($delayMs * 1000);
+
+            $status = $client->request(
+                'GET',
+                Endpoints::CHECK_BATCH_STATUS,
+                Endpoints::catalog($catalog->meta_catalog_id),
+                null,
+                ['handles' => $handle]
+            );
+
+            $items = $status['data'] ?? [];
+            foreach ($items as $item) {
+                if (($item['handle'] ?? '') !== $handle) continue;
+
+                if (($item['status'] ?? '') === 'SUCCESS' && !empty($item['id'])) {
+                    return $item['id'];
+                }
+                if (($item['status'] ?? '') === 'ERROR') {
+                    $errors = $item['errors'] ?? [];
+                    $msg = $errors[0]['message'] ?? 'unknown error';
+                    throw new \RuntimeException('items_batch error: ' . $msg);
+                }
+            }
+        }
+
+        throw new \RuntimeException('items_batch timeout for handle: ' . $handle);
     }
 }
