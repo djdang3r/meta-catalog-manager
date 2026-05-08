@@ -552,13 +552,13 @@ class ProductService
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
 
-        return $modelClass::create(array_merge(
-            $this->mapApiDataToColumns($data),
-            [
-                'meta_catalog_id'      => $catalog->id,
-                'meta_product_item_id' => $productId,
-            ]
-        ));
+        return $modelClass::updateOrCreate(
+            ['meta_catalog_id' => $catalog->id, 'retailer_id' => $data['retailer_id']],
+            array_merge(
+                $this->mapApiDataToColumns($data),
+                ['meta_product_item_id' => $productId]
+            )
+        );
     }
 
     /**
