@@ -526,6 +526,9 @@ class ProductService
             $batchData['id'] = $data['retailer_id'];
         }
         // items_batch uses different field names than /products endpoint
+        if (isset($batchData['name']) && !isset($batchData['title'])) {
+            $batchData['title'] = $batchData['name'];
+        }
         if (isset($batchData['image_url']) && !isset($batchData['image_link'])) {
             $batchData['image_link'] = $batchData['image_url'];
         }
