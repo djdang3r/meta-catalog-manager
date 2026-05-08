@@ -686,17 +686,29 @@ class ProductService
 
                 $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => $productId];
             } catch (\Exception $e) {
-                // Fallback: product might exist in Meta but not indexed yet — do a full sync and retry
+                // Fallback: product exists in Meta but not indexed yet.
+                // Save locally with correct data (including item_group_id) even without meta_product_item_id.
+                // Next sync will fill in the meta_product_item_id.
+                $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+                $modelClass::updateOrCreate(
+                    ['meta_catalog_id' => $catalog->id, 'retailer_id' => $item['retailer_id']],
+                    array_merge($this->mapApiDataToColumns($item), ['meta_product_item_id' => null])
+                );
+
+                // Now do a full sync which will fill in the missing meta_product_item_id from Meta
                 try {
                     $this->syncFromApi($catalog);
-                    $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
                     $existing = $modelClass::where('meta_catalog_id', $catalog->id)
                         ->where('retailer_id', $item['retailer_id'])->first();
                     if ($existing && $existing->meta_product_item_id) {
                         $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => $existing->meta_product_item_id];
                     } else {
-                        $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
+                        $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => 'pending_sync', 'note' => 'Guardado localmente. Sincronizá para obtener el ID de Meta.'];
                     }
+                } catch (\Exception $fallbackError) {
+                    $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => 'pending_sync', 'note' => 'Guardado localmente. Error en sync: ' . $fallbackError->getMessage()];
+                }
+            }
                 } catch (\Exception $fallbackError) {
                     $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
                 }
