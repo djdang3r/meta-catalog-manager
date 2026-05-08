@@ -629,4 +629,54 @@ class ProductService
         }
         throw new \RuntimeException('items_batch: product not found for retailer_id: ' . $retailerId);
     }
+
+    /**
+     * Crea múltiples productos (variantes) en un solo request items_batch.
+     * Retorna array con resultados individuales: ok/error por cada variante.
+     */
+    public function createBatch(MetaCatalog $catalog, array $items): array
+    {
+        $account = $catalog->account;
+        $client  = $this->accountService->getApiClient($account);
+
+        $requests = [];
+        foreach ($items as $item) {
+            $batchData = $item;
+            if (empty($batchData['id'])) $batchData['id'] = $item['retailer_id'];
+            if (isset($batchData['name']) && !isset($batchData['title'])) $batchData['title'] = $batchData['name'];
+            if (isset($batchData['image_url']) && !isset($batchData['image_link'])) $batchData['image_link'] = $batchData['image_url'];
+            if (isset($batchData['url']) && !isset($batchData['link'])) $batchData['link'] = $batchData['url'];
+            if (isset($batchData['price']) && is_numeric($batchData['price']) && (int)$batchData['price'] > 0) {
+                $batchData['price'] = number_format((float)$batchData['price'] / 100, 2, '.', '');
+            }
+
+            $requests[] = ['method' => 'CREATE', 'retailer_id' => $item['retailer_id'], 'data' => $batchData];
+        }
+
+        $payload = ['item_type' => 'PRODUCT_ITEM', 'requests' => $requests];
+        $response = $client->request('POST', Endpoints::ITEMS_BATCH, Endpoints::catalog($catalog->meta_catalog_id), $payload);
+
+        $handles = $response['handles'] ?? [];
+        $results = [];
+
+        foreach ($items as $i => $item) {
+            $handle = $handles[$i] ?? null;
+            try {
+                if (!$handle) throw new \RuntimeException('No handle');
+                $productId = $this->waitForBatchHandle($catalog, $handle, $item['retailer_id'], 20, 3000);
+
+                $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+                $modelClass::updateOrCreate(
+                    ['meta_catalog_id' => $catalog->id, 'retailer_id' => $item['retailer_id']],
+                    array_merge($this->mapApiDataToColumns($item), ['meta_product_item_id' => $productId])
+                );
+
+                $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => $productId];
+            } catch (\Exception $e) {
+                $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
+            }
+        }
+
+        return $results;
+    }
 }
