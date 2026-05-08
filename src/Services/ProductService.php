@@ -575,7 +575,7 @@ class ProductService
                 Endpoints::CHECK_BATCH_STATUS,
                 Endpoints::catalog($catalog->meta_catalog_id),
                 null,
-                ['handles' => $handle]
+                ['handle' => $handle]
             );
 
             $items = $status['data'] ?? [];
