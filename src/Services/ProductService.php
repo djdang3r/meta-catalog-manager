@@ -619,12 +619,15 @@ class ProductService
         throw new \RuntimeException('items_batch timeout for handle: ' . $handle);
     }
 
-    private function findProductByRetailerId(MetaCatalog $catalog, string $retailerId): string
+    private function findProductByRetailerId(MetaCatalog $catalog, string $retailerId, int $maxRetries = 5): string
     {
-        $response = $this->getFromApi($catalog, 200);
-        foreach ($response['data'] ?? [] as $item) {
-            if (($item['retailer_id'] ?? '') === $retailerId) {
-                return $item['id'];
+        for ($i = 0; $i < $maxRetries; $i++) {
+            if ($i > 0) usleep(2000000); // 2s delay between retries
+            $response = $this->getFromApi($catalog, 200);
+            foreach ($response['data'] ?? [] as $item) {
+                if (($item['retailer_id'] ?? '') === $retailerId) {
+                    return $item['id'];
+                }
             }
         }
         throw new \RuntimeException('items_batch: product not found for retailer_id: ' . $retailerId);
@@ -662,7 +665,17 @@ class ProductService
         foreach ($items as $i => $item) {
             $handle = $handles[$i] ?? null;
             try {
-                if (!$handle) throw new \RuntimeException('No handle');
+                if (!$handle) {
+                    // Product might already exist from a previous attempt — try to find it
+                    $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+                    $existing = $modelClass::where('meta_catalog_id', $catalog->id)
+                        ->where('retailer_id', $item['retailer_id'])->first();
+                    if ($existing && $existing->meta_product_item_id) {
+                        $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => $existing->meta_product_item_id];
+                        continue;
+                    }
+                    throw new \RuntimeException('No handle — posible retailer_id duplicado o ya existe en Meta');
+                }
                 $productId = $this->waitForBatchHandle($catalog, $handle, $item['retailer_id'], 20, 3000);
 
                 $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
