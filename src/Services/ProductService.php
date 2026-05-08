@@ -547,7 +547,8 @@ class ProductService
             throw new \RuntimeException('items_batch: no handles returned — ' . json_encode($response));
         }
 
-        $productId = $this->waitForBatchHandle($catalog, $handles[0]);
+        $retailerId = $data['retailer_id'];
+        $productId = $this->waitForBatchHandle($catalog, $handles[0], $retailerId);
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
 
@@ -563,7 +564,7 @@ class ProductService
     /**
      * Polling del estado de un handle de items_batch hasta que se complete.
      */
-    private function waitForBatchHandle(MetaCatalog $catalog, string $handle, int $maxRetries = 15, int $delayMs = 2000): string
+    private function waitForBatchHandle(MetaCatalog $catalog, string $handle, string $retailerId, int $maxRetries = 20, int $delayMs = 3000): string
     {
         $client = $this->accountService->getApiClient($catalog->account);
 
@@ -582,10 +583,12 @@ class ProductService
             foreach ($items as $item) {
                 if (($item['handle'] ?? '') !== $handle) continue;
 
-                if (($item['status'] ?? '') === 'SUCCESS' && !empty($item['id'])) {
-                    return $item['id'];
+                $batchStatus = $item['status'] ?? '';
+                if ($batchStatus === 'finished' || $batchStatus === 'SUCCESS') {
+                    // Look up product by retailer_id via the products API
+                    return $this->findProductByRetailerId($catalog, $retailerId);
                 }
-                if (($item['status'] ?? '') === 'ERROR') {
+                if ($batchStatus === 'failed') {
                     $errors = $item['errors'] ?? [];
                     $msg = $errors[0]['message'] ?? 'unknown error';
                     throw new \RuntimeException('items_batch error: ' . $msg);
@@ -594,5 +597,16 @@ class ProductService
         }
 
         throw new \RuntimeException('items_batch timeout for handle: ' . $handle);
+    }
+
+    private function findProductByRetailerId(MetaCatalog $catalog, string $retailerId): string
+    {
+        $response = $this->getFromApi($catalog, 200);
+        foreach ($response['data'] ?? [] as $item) {
+            if (($item['retailer_id'] ?? '') === $retailerId) {
+                return $item['id'];
+            }
+        }
+        throw new \RuntimeException('items_batch: product not found for retailer_id: ' . $retailerId);
     }
 }
