@@ -521,9 +521,19 @@ class ProductService
         $client  = $this->accountService->getApiClient($account);
 
         $batchData = $data;
-        // items_batch requires 'id' field in data (use retailer_id for new products)
+        // items_batch requires 'id' field (use retailer_id for new products)
         if (empty($batchData['id'])) {
             $batchData['id'] = $data['retailer_id'];
+        }
+        // items_batch uses different field names than /products endpoint
+        if (isset($batchData['image_url']) && !isset($batchData['image_link'])) {
+            $batchData['image_link'] = $batchData['image_url'];
+        }
+        if (isset($batchData['additional_image_urls']) && !isset($batchData['additional_image_link'])) {
+            $batchData['additional_image_link'] = $batchData['additional_image_urls'];
+        }
+        if (isset($batchData['url']) && !isset($batchData['link'])) {
+            $batchData['link'] = $batchData['url'];
         }
 
         $payload = [
