@@ -520,12 +520,18 @@ class ProductService
         $account = $catalog->account;
         $client  = $this->accountService->getApiClient($account);
 
+        $batchData = $data;
+        // items_batch requires 'id' field in data (use retailer_id for new products)
+        if (empty($batchData['id'])) {
+            $batchData['id'] = $data['retailer_id'];
+        }
+
         $payload = [
             'item_type' => 'PRODUCT_ITEM',
             'requests' => [[
                 'method'      => 'CREATE',
                 'retailer_id' => $data['retailer_id'],
-                'data'        => $data,
+                'data'        => $batchData,
             ]],
         ];
 
