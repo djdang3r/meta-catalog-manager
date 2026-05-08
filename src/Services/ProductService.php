@@ -271,6 +271,33 @@ class ProductService
                     $localItem->fill($fillData)->save();
                 }
 
+                // Infer item_group_id from retailer_id pattern when Meta doesn't provide it.
+                // e.g., "KLAN-009-38" is a variant of parent "KLAN-009"
+                if (empty($localItem->item_group_id) && !empty($localItem->retailer_id)) {
+                    $retailerId = $localItem->retailer_id;
+                    // Try to find a parent by checking if any product's retailer_id is a prefix of this one
+                    $modelClass::where('meta_catalog_id', $catalog->id)
+                        ->where('item_group_id', $retailerId)
+                        ->orWhere(function ($q) use ($retailerId) {
+                            // Heuristic: the variant's retailer_id starts with the parent's retailer_id + "-"
+                            // e.g., "KLAN-009-38" has parent "KLAN-009"
+                            $parts = explode('-', $retailerId);
+                            while (count($parts) > 1) {
+                                array_pop($parts);
+                                $candidate = implode('-', $parts);
+                                $q->orWhere('retailer_id', $candidate)->orWhere('item_group_id', $candidate);
+                            }
+                        })
+                        ->whereNotNull('item_group_id')
+                        ->limit(1)
+                        ->get()
+                        ->each(function ($parent) use ($localItem, $catalog) {
+                            if ($parent->item_group_id && $parent->retailer_id !== $localItem->retailer_id) {
+                                $localItem->update(['item_group_id' => $parent->item_group_id]);
+                            }
+                        });
+                }
+
                 // Registrar cambio de inventario si la cantidad cambió o es un producto nuevo
                 $newQty = $localItem->quantity_to_sell_on_facebook;
                 if ($newQty !== null) {
