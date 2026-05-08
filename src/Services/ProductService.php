@@ -686,7 +686,20 @@ class ProductService
 
                 $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => $productId];
             } catch (\Exception $e) {
-                $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
+                // Fallback: product might exist in Meta but not indexed yet — do a full sync and retry
+                try {
+                    $this->syncFromApi($catalog);
+                    $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+                    $existing = $modelClass::where('meta_catalog_id', $catalog->id)
+                        ->where('retailer_id', $item['retailer_id'])->first();
+                    if ($existing && $existing->meta_product_item_id) {
+                        $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => $existing->meta_product_item_id];
+                    } else {
+                        $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
+                    }
+                } catch (\Exception $fallbackError) {
+                    $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
+                }
             }
         }
 
