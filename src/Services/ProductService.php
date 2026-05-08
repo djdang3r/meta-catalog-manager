@@ -538,6 +538,13 @@ class ProductService
         if (isset($batchData['url']) && !isset($batchData['link'])) {
             $batchData['link'] = $batchData['url'];
         }
+        // items_batch expects price as float string (e.g. "245000.00"), not cents integer
+        if (isset($batchData['price']) && is_numeric($batchData['price']) && (int)$batchData['price'] > 0) {
+            $batchData['price'] = number_format((float)$batchData['price'] / 100, 2, '.', '');
+        }
+        if (isset($batchData['sale_price']) && is_numeric($batchData['sale_price']) && (int)$batchData['sale_price'] > 0) {
+            $batchData['sale_price'] = number_format((float)$batchData['sale_price'] / 100, 2, '.', '');
+        }
 
         $payload = [
             'item_type' => 'PRODUCT_ITEM',
