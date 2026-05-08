@@ -619,10 +619,10 @@ class ProductService
         throw new \RuntimeException('items_batch timeout for handle: ' . $handle);
     }
 
-    private function findProductByRetailerId(MetaCatalog $catalog, string $retailerId, int $maxRetries = 5): string
+    private function findProductByRetailerId(MetaCatalog $catalog, string $retailerId, int $maxRetries = 8): string
     {
         for ($i = 0; $i < $maxRetries; $i++) {
-            if ($i > 0) usleep(2000000); // 2s delay between retries
+            if ($i > 0) usleep(3000000); // 3s delay between retries
             $response = $this->getFromApi($catalog, 200);
             foreach ($response['data'] ?? [] as $item) {
                 if (($item['retailer_id'] ?? '') === $retailerId) {
