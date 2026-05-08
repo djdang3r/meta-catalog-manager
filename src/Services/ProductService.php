@@ -709,10 +709,6 @@ class ProductService
                     $results[] = ['success' => true, 'retailer_id' => $item['retailer_id'], 'id' => 'pending_sync', 'note' => 'Guardado localmente. Error en sync: ' . $fallbackError->getMessage()];
                 }
             }
-                } catch (\Exception $fallbackError) {
-                    $results[] = ['success' => false, 'retailer_id' => $item['retailer_id'], 'error' => $e->getMessage()];
-                }
-            }
         }
 
         return $results;
