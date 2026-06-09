@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.62] - 2026-06-09
+
+### Fixed
+- `ProductService::getSingle()`: raw Meta API prices were stored without cleaning (different format than `syncFromApi`'s cents format). Now `getSingle()` applies `cleanPrice()` and `filterFillData()` consistently, ensuring individual product fetches store data in the same normalized format as bulk syncs.
+
 ## [1.0.61] - 2026-06-09
 
 ### Fixed

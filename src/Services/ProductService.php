@@ -142,7 +142,32 @@ class ProductService
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
 
         $item = $modelClass::where('meta_product_item_id', $productItemId)->firstOrFail();
-        $item->update($this->mapApiDataToColumns($response));
+
+        $columns = $this->mapApiDataToColumns($response);
+
+        // Clean prices to match syncFromApi's cents format
+        if (array_key_exists('price', $columns)) {
+            $cleaned = $this->cleanPrice($columns['price']);
+            if ($cleaned !== null) {
+                $columns['price'] = $cleaned;
+            } else {
+                unset($columns['price']);
+            }
+        }
+        if (array_key_exists('sale_price', $columns)) {
+            $cleaned = $this->cleanPrice($columns['sale_price']);
+            if ($cleaned !== null) {
+                $columns['sale_price'] = $cleaned;
+            } else {
+                unset($columns['sale_price']);
+            }
+        }
+
+        // Strip null/empty values (same protection as syncFromApi)
+        $columns = $this->filterFillData($columns);
+        if (! empty($columns)) {
+            $item->update($columns);
+        }
 
         return $item->fresh();
     }
