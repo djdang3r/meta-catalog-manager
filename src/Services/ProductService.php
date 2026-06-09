@@ -136,7 +136,7 @@ class ProductService
             Endpoints::GET_PRODUCT,
             Endpoints::product($productItemId),
             null,
-            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,manufacturer_part_number']
+            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,color,size,gender,age_group,material,pattern,gtin,manufacturer_part_number']
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.63] - 2026-06-09
+
+### Fixed
+- `ProductService::getSingle()`: removed `additional_variant_attribute` from requested fields. Meta API v25.0 single-product endpoint (`GET /{product_id}`) rejects this field with error 400 (#100 "Tried accessing nonexisting field"), while the list endpoint (`GET /products`) accepts it. This was silently breaking the auto-repair of corrupted products during `syncFromApi`, leaving prices and other attributes stuck at null.
+
 ## [1.0.62] - 2026-06-09
 
 ### Fixed
