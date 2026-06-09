@@ -502,38 +502,47 @@ class ProductService
         $price = trim($price);
 
         // Detect format:
-        // - "100.000,00" (LatAm: dot=thousands, comma=decimal) → 10000000
-        // - "100,000.00" (US: comma=thousands, dot=decimal) → 10000000  
-        // - "100.000"    (Colombian: dot=thousands, no decimals) → 10000000
-        // - "1999"       (already in cents/smallest unit) → 1999
+        // - "COP6,000"    (currency prefix, comma=thousands) → 600000
+        // - "100.000,00"  (LatAm: dot=thousands, comma=decimal) → 10000000
+        // - "100,000.00"  (US: comma=thousands, dot=decimal) → 10000000  
+        // - "6,000"       (comma only, 3 digits after → thousands) → 600000
+        // - "100.000"     (dot only, 3 digits after → thousands) → 10000000
+        // - "19.99"       (dot only, 2 digits after → decimal) → 1999
+        // - "1999"        (already plain integer) → 1999
 
         // If already a plain integer without any separators, return as-is
         if (preg_match('/^[0-9]+$/', $price)) {
             return $price;
         }
 
-        // Remove thousand separators (dots or commas)
-        // Detect which is decimal separator by last occurrence
+        // Detect which character is the decimal separator by last occurrence
         $lastComma = strrpos($price, ',');
         $lastDot = strrpos($price, '.');
 
         if ($lastComma > $lastDot) {
-            // Comma is decimal: "100.000,00" → remove dots, replace comma with dot
-            $price = str_replace('.', '', $price);
-            $price = str_replace(',', '.', $price);
+            // Comma appears after dot (or no dot at all)
+            $digitsAfterComma = strlen(substr($price, $lastComma + 1));
+
+            if ($lastDot === false && $digitsAfterComma === 3) {
+                // "6,000" or "25,000": comma is thousands separator (3 digits, no dot)
+                $price = str_replace(',', '', $price);
+            } else {
+                // "6.000,00": comma is decimal, dots are thousands (LatAm)
+                $price = str_replace('.', '', $price);
+                $price = str_replace(',', '.', $price);
+            }
         } elseif ($lastDot > $lastComma) {
-            // Dot is decimal: "100,000.00" → remove commas
-            // BUT if no comma exists and digits after dot = 3, it's a thousand separator (e.g. "120.000")
+            // Dot appears after comma (or no comma at all)
             $digitsAfterDot = strlen(substr($price, $lastDot + 1));
             if ($lastComma === false && $digitsAfterDot === 3) {
-                // Thousand separator: "120.000" → "120000" → ×100
+                // "120.000": dot is thousands separator (3 digits, no comma)
                 $price = str_replace('.', '', $price);
             } else {
-                // Decimal: "19.99" → keep dot
+                // "6,000.00": dot is decimal, commas are thousands (US)
                 $price = str_replace(',', '', $price);
             }
         } else {
-            // No decimal separator found, just thousand separators: "100.000" → "100000"
+            // Both comma and dot at same position (impossible), or neither exists
             $price = str_replace(['.', ','], '', $price);
         }
 
