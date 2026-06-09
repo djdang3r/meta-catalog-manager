@@ -237,14 +237,16 @@ class ProductService
                     $cleaned = $this->cleanPrice($rawPrice);
                     $fillData['price'] = $cleaned;
 
-                    // Debug: log when price seems wrong
-                    if (($rawPrice !== null && $rawPrice !== '' && $cleaned === null) || ($cleaned === '0')) {
-                        Log::warning('ProductService::syncFromApi — suspicious price', [
+                    // Debug: log first 3 products' price for diagnosis
+                    static $priceDebugCount = 0;
+                    if ($priceDebugCount < 3) {
+                        $priceDebugCount++;
+                        Log::channel('meta-catalog')->warning("PRICE_DEBUG #{$priceDebugCount}: raw=[{$rawPrice}] cleaned=[{$cleaned}] retailer=[".($item['retailer_id']??'N/A')."]", [
                             'product_id' => $item['id'] ?? 'unknown',
-                            'retailer_id' => $item['retailer_id'] ?? 'unknown',
-                            'raw_price' => $rawPrice,
-                            'cleaned_price' => $cleaned,
-                            'has_currency' => $item['currency'] ?? 'none',
+                            'raw_price' => var_export($rawPrice, true),
+                            'cleaned_price' => var_export($cleaned, true),
+                            'local_price_before' => $localItem->price ?? 'NULL',
+                            'local_title' => $localItem->title ?? 'NULL',
                         ]);
                     }
                 }
