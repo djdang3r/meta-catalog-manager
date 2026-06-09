@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.59] - 2026-06-08
+
+### Fixed
+- `ProductService::syncFromApi()`: null/empty values from Meta API were overwriting existing local data. Added `filterFillData()` helper that strips null, empty string, and empty array values before `fill()->save()`, preserving existing data when Meta returns blank fields for any attribute (price, description, brand, categories, images, links, variants, labels, identifiers, visibility, etc.).
+- `ProductService::syncFromApi()`: products deleted in Meta were never removed from the local database. Added orphan cleanup step that soft-deletes local products whose `meta_product_item_id` is no longer present in the Meta API response after a full sync completes.
+
 ## [1.0.26] - 2026-05-05
 
 ### Fixed

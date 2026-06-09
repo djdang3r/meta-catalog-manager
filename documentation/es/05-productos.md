@@ -198,11 +198,16 @@ Elimina un producto de la API. Preferí usar `visibility: staging` en lugar de e
 ### `syncFromApi(MetaCatalog $catalog): int`
 
 Sincroniza todos los productos de la API hacia la DB local con paginación automática.
+Los productos que ya no existen en Meta se eliminan automáticamente (soft-delete).
+Los campos vacíos o nulos devueltos por Meta no sobreescriben los valores existentes en la DB local.
 
 ```php
 $count = MetaCatalog::product()->syncFromApi($catalog);
 echo "Productos sincronizados: {$count}";
 ```
+
+> **Nota**: A partir de v1.0.59, `syncFromApi` limpia productos huérfanos (eliminados en Meta) y
+> protege los datos existentes de ser pisados por campos vacíos.
 
 ### `findLocal(string $retailerId, MetaCatalog $catalog): ?MetaCatalogItem`
 

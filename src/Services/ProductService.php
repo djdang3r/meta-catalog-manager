@@ -9,6 +9,7 @@ use ScriptDevelop\MetaCatalogManager\Models\MetaBusinessAccount;
 use ScriptDevelop\MetaCatalogManager\Models\MetaCatalog;
 use ScriptDevelop\MetaCatalogManager\Models\MetaCatalogItem;
 use ScriptDevelop\MetaCatalogManager\Models\MetaInventoryLog;
+use Illuminate\Support\Facades\Log;
 
 class ProductService
 {
@@ -157,12 +158,18 @@ class ProductService
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
         $count  = 0;
         $after  = null;
+        $seenProductIds = [];
 
         do {
             $response = $this->getFromApi($catalog, 200, $after);
             $items    = $response['data'] ?? [];
 
             foreach ($items as $item) {
+                // Track product IDs from Meta for orphan cleanup
+                if (!empty($item['id'])) {
+                    $seenProductIds[] = $item['id'];
+                }
+
                 $localItem = $modelClass::firstOrNew(
                     [
                         'meta_catalog_id' => $catalog->id,
@@ -266,7 +273,10 @@ class ProductService
                 if (array_key_exists('visibility', $item))              $fillData['visibility'] = $item['visibility'];
                 if (array_key_exists('review_status', $item))           $fillData['review_status'] = $item['review_status'];
 
-                // Apply only the fields Meta actually returned
+                // Apply only the fields Meta actually returned, excluding null/empty values.
+                // Prevents overwriting existing data when Meta returns blank fields
+                // (e.g. price = "" would wipe the stored price).
+                $fillData = $this->filterFillData($fillData);
                 if (!empty($fillData)) {
                     $localItem->fill($fillData)->save();
                 }
@@ -326,6 +336,22 @@ class ProductService
 
         } while ($hasNext && $after !== null);
 
+        // Clean up orphaned products: soft-delete local products no longer present in Meta.
+        if (!empty($seenProductIds)) {
+            $orphaned = $modelClass::where('meta_catalog_id', $catalog->id)
+                ->whereNotNull('meta_product_item_id')
+                ->whereNotIn('meta_product_item_id', $seenProductIds);
+
+            $orphanedCount = $orphaned->count();
+            if ($orphanedCount > 0) {
+                $orphaned->delete();
+                Log::info('ProductService::syncFromApi — cleaned up orphaned products', [
+                    'catalog_id' => $catalog->meta_catalog_id,
+                    'orphaned_count' => $orphanedCount,
+                ]);
+            }
+        }
+
         return $count;
     }
 
@@ -372,6 +398,21 @@ class ProductService
     // =========================================================================
     // Helpers
     // =========================================================================
+
+    /**
+     * Filter out null, empty string, and empty array values from fill data.
+     * Preserves numeric zero (valid for quantity_to_sell_on_facebook = 0).
+     * Prevents blank Meta API responses from overwriting existing local data.
+     */
+    private function filterFillData(array $fillData): array
+    {
+        return array_filter($fillData, function ($v, $k) {
+            if ($v === 0 || $v === '0') return true;
+            if ($v === null || $v === '') return false;
+            if (is_array($v) && empty($v)) return false;
+            return true;
+        }, ARRAY_FILTER_USE_BOTH);
+    }
 
     /**
      * Clean price string from Meta API (removes currency symbols, spaces, etc).
