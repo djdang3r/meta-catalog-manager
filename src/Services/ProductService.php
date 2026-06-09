@@ -494,10 +494,11 @@ class ProductService
             return null;
         }
 
-        // Strip currency symbols, spaces, non-breaking spaces, and 3-letter currency codes
+        // Strip currency symbols, spaces, non-breaking spaces, and currency codes.
         // Meta may return "COP6,000" or "$ 6,000" or "6000 COP" etc.
         $price = trim(preg_replace('/[\$\s\x{00A0}]/u', '', $price));
-        $price = preg_replace('/\b[A-Z]{3}\b/', '', $price); // "COP", "USD", etc.
+        $price = preg_replace('/^[A-Z]{3}\s*/', '', $price);  // "COP6000", "COP 6000"
+        $price = preg_replace('/\s*[A-Z]{3}$/', '', $price);  // "6000 COP"
         $price = trim($price);
 
         // Detect format:
