@@ -1,6 +1,11 @@
 # Changelog
 
-## [1.0.64] - 2026-06-09
+## [1.0.65] - 2026-06-09
+
+### Fixed
+- `ProductService::getSingle()`: reduced requested fields to core subset only. Meta API v25.0 single-product endpoint rejects variant-related fields (`item_group_id`, `color`, `size`, `gender`, `age_group`, `material`, `pattern`, `additional_variant_attribute`, `manufacturer_part_number`, `retailer_id`) that the list endpoint accepts. Now uses only `id,name,description,url,price,sale_price,currency,availability,condition,image_url,images,brand,category,gtin` which are confirmed to work.
+
+## [1.0.64]
 
 ### Added
 - Debug logging: `syncFromApi` now logs suspicious price values (raw vs cleaned) when Meta returns a price that `cleanPrice` converts to null or zero.

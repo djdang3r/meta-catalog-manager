@@ -131,12 +131,17 @@ class ProductService
     {
         $client = $this->accountService->getApiClient($account);
 
+        // Meta API single-product endpoint in v25.0 rejects certain fields
+        // that the list endpoint accepts (item_group_id, additional_variant_attribute, etc).
+        // Use only core fields that are known to work on the single endpoint.
+        $coreFields = 'id,name,description,url,price,sale_price,currency,availability,condition,image_url,images,brand,category,gtin';
+
         $response = $client->request(
             'GET',
             Endpoints::GET_PRODUCT,
             Endpoints::product($productItemId),
             null,
-            ['fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,color,size,gender,age_group,material,pattern,gtin,manufacturer_part_number']
+            ['fields' => $coreFields]
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
