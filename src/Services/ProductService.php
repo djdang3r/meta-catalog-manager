@@ -281,6 +281,27 @@ class ProductService
                     $localItem->fill($fillData)->save();
                 }
 
+                // Repair: if critical fields are still null after sync (corrupted from
+                // a previous buggy sync), force-fetch the individual product from Meta's
+                // single-product endpoint which returns more complete data.
+                if (! $localItem->wasRecentlyCreated
+                    && ! empty($localItem->meta_product_item_id)
+                    && $this->hasNullCriticalFields($localItem)
+                ) {
+                    try {
+                        $this->getSingle($localItem->meta_product_item_id, $catalog->account);
+                        Log::info('ProductService::syncFromApi — repaired critical fields from single endpoint', [
+                            'product_id' => $localItem->meta_product_item_id,
+                            'retailer_id' => $localItem->retailer_id,
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::warning('ProductService::syncFromApi — repair fetch failed', [
+                            'product_id' => $localItem->meta_product_item_id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
                 // Infer item_group_id from retailer_id pattern when Meta doesn't provide it.
                 // e.g., "KLAN-009-38" is a variant of parent "KLAN-009"
                 if (empty($localItem->item_group_id) && !empty($localItem->retailer_id)) {
@@ -412,6 +433,24 @@ class ProductService
             if (is_array($v) && empty($v)) return false;
             return true;
         }, ARRAY_FILTER_USE_BOTH);
+    }
+
+    /**
+     * Check if a local product has null critical fields that need repair.
+     * These fields may have been corrupted by a previous buggy sync and
+     * need a force-refetch from Meta's single-product endpoint.
+     */
+    private function hasNullCriticalFields(MetaCatalogItem $item): bool
+    {
+        $criticalFields = ['price', 'title', 'currency'];
+
+        foreach ($criticalFields as $field) {
+            if (empty($item->{$field})) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

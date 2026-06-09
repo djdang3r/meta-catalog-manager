@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.61] - 2026-06-09
+
+### Fixed
+- `ProductService::syncFromApi()`: critical fields (price, title, currency) corrupted to null by previous buggy syncs are now auto-repaired. When a product has null critical fields after sync, the method force-fetches the individual product from Meta's single-product endpoint (`getSingle`) which returns complete data, restoring the missing values.
+
 ## [1.0.60] - 2026-06-09
 
 ### Fixed
