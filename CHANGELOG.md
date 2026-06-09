@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.59] - 2026-06-08
+## [1.0.60] - 2026-06-09
 
 ### Fixed
 - `ProductService::syncFromApi()`: null/empty values from Meta API were overwriting existing local data. Added `filterFillData()` helper that strips null, empty string, and empty array values before `fill()->save()`, preserving existing data when Meta returns blank fields for any attribute (price, description, brand, categories, images, links, variants, labels, identifiers, visibility, etc.).

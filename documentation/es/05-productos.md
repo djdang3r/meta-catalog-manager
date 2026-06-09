@@ -206,7 +206,7 @@ $count = MetaCatalog::product()->syncFromApi($catalog);
 echo "Productos sincronizados: {$count}";
 ```
 
-> **Nota**: A partir de v1.0.59, `syncFromApi` limpia productos huérfanos (eliminados en Meta) y
+> **Nota**: A partir de v1.0.60, `syncFromApi` limpia productos huérfanos (eliminados en Meta) y
 > protege los datos existentes de ser pisados por campos vacíos.
 
 ### `findLocal(string $retailerId, MetaCatalog $catalog): ?MetaCatalogItem`
