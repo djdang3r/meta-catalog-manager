@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.67] - 2026-06-09
+
+### Fixed
+- `ProductService::cleanPrice()`: Meta API returns prices with 3-letter currency codes prefixed without space (e.g. `"COP6,000"`, `"USD19.99"`). `cleanPrice()` only stripped `$` and whitespace, causing `(float)"COP6,000"` to yield `0`. Now also strips 3-letter currency codes (`COP`, `USD`, `EUR`, etc.) before numeric parsing.
+
+## [1.0.66]
+
 ## [1.0.65] - 2026-06-09
 
 ### Fixed

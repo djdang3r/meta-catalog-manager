@@ -233,22 +233,7 @@ class ProductService
 
                 // Pricing
                 if (array_key_exists('price', $item)) {
-                    $rawPrice = $item['price'];
-                    $cleaned = $this->cleanPrice($rawPrice);
-                    $fillData['price'] = $cleaned;
-
-                    // Debug: log first 3 products' price for diagnosis
-                    static $priceDebugCount = 0;
-                    if ($priceDebugCount < 3) {
-                        $priceDebugCount++;
-                        Log::channel('meta-catalog')->warning("PRICE_DEBUG #{$priceDebugCount}: raw=[{$rawPrice}] cleaned=[{$cleaned}] retailer=[".($item['retailer_id']??'N/A')."]", [
-                            'product_id' => $item['id'] ?? 'unknown',
-                            'raw_price' => var_export($rawPrice, true),
-                            'cleaned_price' => var_export($cleaned, true),
-                            'local_price_before' => $localItem->price ?? 'NULL',
-                            'local_title' => $localItem->title ?? 'NULL',
-                        ]);
-                    }
+                    $fillData['price'] = $this->cleanPrice($item['price']);
                 }
                 if (array_key_exists('sale_price', $item))              $fillData['sale_price'] = $this->cleanPrice($item['sale_price']);
                 if (array_key_exists('sale_price_effective_date', $item)) $fillData['sale_price_effective_date'] = $item['sale_price_effective_date'];
@@ -509,8 +494,11 @@ class ProductService
             return null;
         }
 
-        // Strip currency symbols, spaces, non-breaking spaces
+        // Strip currency symbols, spaces, non-breaking spaces, and 3-letter currency codes
+        // Meta may return "COP6,000" or "$ 6,000" or "6000 COP" etc.
         $price = trim(preg_replace('/[\$\s\x{00A0}]/u', '', $price));
+        $price = preg_replace('/\b[A-Z]{3}\b/', '', $price); // "COP", "USD", etc.
+        $price = trim($price);
 
         // Detect format:
         // - "100.000,00" (LatAm: dot=thousands, comma=decimal) → 10000000
