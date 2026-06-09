@@ -227,7 +227,22 @@ class ProductService
                 if (array_key_exists('google_product_category', $item)) $fillData['google_product_category'] = $item['google_product_category'];
 
                 // Pricing
-                if (array_key_exists('price', $item))                   $fillData['price'] = $this->cleanPrice($item['price']);
+                if (array_key_exists('price', $item)) {
+                    $rawPrice = $item['price'];
+                    $cleaned = $this->cleanPrice($rawPrice);
+                    $fillData['price'] = $cleaned;
+
+                    // Debug: log when price seems wrong
+                    if (($rawPrice !== null && $rawPrice !== '' && $cleaned === null) || ($cleaned === '0')) {
+                        Log::warning('ProductService::syncFromApi — suspicious price', [
+                            'product_id' => $item['id'] ?? 'unknown',
+                            'retailer_id' => $item['retailer_id'] ?? 'unknown',
+                            'raw_price' => $rawPrice,
+                            'cleaned_price' => $cleaned,
+                            'has_currency' => $item['currency'] ?? 'none',
+                        ]);
+                    }
+                }
                 if (array_key_exists('sale_price', $item))              $fillData['sale_price'] = $this->cleanPrice($item['sale_price']);
                 if (array_key_exists('sale_price_effective_date', $item)) $fillData['sale_price_effective_date'] = $item['sale_price_effective_date'];
                 if (array_key_exists('currency', $item))                $fillData['currency'] = $item['currency'];

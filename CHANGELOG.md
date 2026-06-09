@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.64] - 2026-06-09
+
+### Added
+- Debug logging: `syncFromApi` now logs suspicious price values (raw vs cleaned) when Meta returns a price that `cleanPrice` converts to null or zero.
+
 ## [1.0.63] - 2026-06-09
 
 ### Fixed
