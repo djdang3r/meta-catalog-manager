@@ -70,6 +70,8 @@ class MetaCatalogItem extends Model
     ];
 
     protected $casts = [
+        'price'                       => 'integer',
+        'sale_price'                  => 'integer',
         'additional_image_urls'       => 'array',
         'additional_variant_attribute' => 'array',
         'internal_label'              => 'array',

@@ -486,70 +486,51 @@ class ProductService
     }
 
     /**
-     * Clean price string from Meta API (removes currency symbols, spaces, etc).
+     * Parse Meta API price string to integer cents.
+     * "COP6,000" → 600000 | "19.99" → 1999 | "6.000,00" → 600000
      */
-    private function cleanPrice(?string $price): ?string
+    private function cleanPrice(?string $price): ?int
     {
         if ($price === null || $price === '') {
             return null;
         }
 
-        // Strip currency symbols, spaces, non-breaking spaces, and currency codes.
-        // Meta may return "COP6,000" or "$ 6,000" or "6000 COP" etc.
         $price = trim(preg_replace('/[\$\s\x{00A0}]/u', '', $price));
-        $price = preg_replace('/^[A-Z]{3}\s*/', '', $price);  // "COP6000", "COP 6000"
-        $price = preg_replace('/\s*[A-Z]{3}$/', '', $price);  // "6000 COP"
+        $price = preg_replace('/^[A-Z]{3}\s*/', '', $price);
+        $price = preg_replace('/\s*[A-Z]{3}$/', '', $price);
         $price = trim($price);
 
-        // Detect format:
-        // - "COP6,000"    (currency prefix, comma=thousands) → 600000
-        // - "100.000,00"  (LatAm: dot=thousands, comma=decimal) → 10000000
-        // - "100,000.00"  (US: comma=thousands, dot=decimal) → 10000000  
-        // - "6,000"       (comma only, 3 digits after → thousands) → 600000
-        // - "100.000"     (dot only, 3 digits after → thousands) → 10000000
-        // - "19.99"       (dot only, 2 digits after → decimal) → 1999
-        // - "1999"        (already plain integer) → 1999
-
-        // If already a plain integer without any separators, return as-is
-        if (preg_match('/^[0-9]+$/', $price)) {
-            return $price;
+        if ($price === '' || $price === '0') {
+            return 0;
         }
 
-        // Detect which character is the decimal separator by last occurrence
+        if (preg_match('/^[0-9]+$/', $price)) {
+            return (int) round((float) $price * 100);
+        }
+
         $lastComma = strrpos($price, ',');
-        $lastDot = strrpos($price, '.');
+        $lastDot   = strrpos($price, '.');
 
         if ($lastComma > $lastDot) {
-            // Comma appears after dot (or no dot at all)
             $digitsAfterComma = strlen(substr($price, $lastComma + 1));
-
             if ($lastDot === false && $digitsAfterComma === 3) {
-                // "6,000" or "25,000": comma is thousands separator (3 digits, no dot)
                 $price = str_replace(',', '', $price);
             } else {
-                // "6.000,00": comma is decimal, dots are thousands (LatAm)
                 $price = str_replace('.', '', $price);
                 $price = str_replace(',', '.', $price);
             }
         } elseif ($lastDot > $lastComma) {
-            // Dot appears after comma (or no comma at all)
             $digitsAfterDot = strlen(substr($price, $lastDot + 1));
             if ($lastComma === false && $digitsAfterDot === 3) {
-                // "120.000": dot is thousands separator (3 digits, no comma)
                 $price = str_replace('.', '', $price);
             } else {
-                // "6,000.00": dot is decimal, commas are thousands (US)
                 $price = str_replace(',', '', $price);
             }
         } else {
-            // Both comma and dot at same position (impossible), or neither exists
             $price = str_replace(['.', ','], '', $price);
         }
 
-        // Convert to float and multiply by 100 to get cents
-        $cents = (int) round(((float) $price) * 100);
-
-        return (string) $cents;
+        return (int) round((float) $price * 100);
     }
 
     /**
