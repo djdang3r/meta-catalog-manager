@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.71] - 2026-08-20
+
+### Fixed
+- `MetaCatalogServiceProvider::boot()`: usar `callAfterResolving('migrator', ...)` en lugar de `loadMigrationsFrom()` directo. En Laravel 11/12, el `loadMigrationsFrom()` no se registra correctamente cuando el provider se auto-descubre vía composer (el orden de boot puede ejecutarse antes de que el `Migrator` resuelva su lista de paths). Esto causaba que las migrations del package NO se ejecutaran en `php artisan migrate` en proyectos consumidores. Ahora se garantiza el registro vía `callAfterResolving`.
+
+### Migration notes
+- Esta versión es **drop-in compatible** con v1.0.70. Los proyectos que ya tenían las migrations ejecutadas (manualmente o con un workaround) NO necesitan ejecutar nada nuevo. Los proyectos que nunca ejecutaron las migrations del package ahora las tendrán automáticamente.
+- v1.0.71 incluye las mismas 17+ migrations que v1.0.70. NO hay cambios de schema. NO hay breaking changes.
+
 ## [1.0.67] - 2026-06-09
 
 ### Fixed

@@ -174,9 +174,16 @@ class MetaCatalogServiceProvider extends ServiceProvider
             __DIR__ . '/../Database/Migrations' => database_path('migrations'),
         ], 'meta-catalog-migrations');
 
-        // Cargar migraciones automáticamente si está habilitado
+        // Cargar migraciones automáticamente si está habilitado.
+        // Usamos callAfterResolving en lugar de loadMigrationsFrom directo porque
+        // en Laravel 11/12 el loadMigrationsFrom() no se registra correctamente
+        // cuando el provider se auto-descubre vía composer (el orden de boot puede
+        // ejecutarse antes de que el Migrator resuelva su lista de paths).
         if (config('meta-catalog.migrations.auto_load', true)) {
-            $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+            $migrationsPath = __DIR__ . '/../Database/Migrations';
+            $this->callAfterResolving('migrator', function ($migrator) use ($migrationsPath) {
+                $migrator->path($migrationsPath);
+            });
         }
 
         $this->publishes([
