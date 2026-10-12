@@ -128,7 +128,8 @@ class CatalogService
             Endpoints::GET_CATALOG,
             Endpoints::catalog($metaCatalogId),
             null,
-            ['fields' => 'id,name,vertical,timezone_id,product_count,is_catalog_segment']
+            // `country`/`currency` are read below, so they must be requested.
+            ['fields' => 'id,name,vertical,timezone_id,product_count,is_catalog_segment,country,currency']
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog', MetaCatalog::class);

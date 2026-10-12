@@ -26,10 +26,13 @@ class FeedService
     {
         $client = $this->accountService->getApiClient($catalog->account);
 
+        // Pedir explícitamente los campos que syncFromApi() consume.
         return $client->request(
             'GET',
             Endpoints::GET_FEEDS,
-            Endpoints::catalog($catalog->meta_catalog_id)
+            Endpoints::catalog($catalog->meta_catalog_id),
+            null,
+            ['fields' => 'id,name,feed_type,ingestion_source_type,next_scheduled_upload_at,latest_upload,file_name,format,encoding,delimiter']
         );
     }
 
@@ -201,10 +204,13 @@ class FeedService
     {
         $client = $this->accountService->getApiClient($feed->catalog->account);
 
+        // Pedir explícitamente los campos que syncUploads() consume.
         return $client->request(
             'GET',
             Endpoints::GET_FEED_UPLOADS,
-            Endpoints::feed($feed->meta_feed_id)
+            Endpoints::feed($feed->meta_feed_id),
+            null,
+            ['fields' => 'id,status,start_time,end_time,num_detected_items,num_persisted_items,num_deleted_items,error_count,warning_count,error_report_uri']
         );
     }
 

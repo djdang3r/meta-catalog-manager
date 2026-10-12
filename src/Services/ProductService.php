@@ -29,9 +29,12 @@ class ProductService
         $account = $catalog->account;
         $client  = $this->accountService->getApiClient($account);
 
+        // `fields` must list every field `syncFromApi()` reads, otherwise Meta
+        // never returns it and the local columns stay empty. Meta's identifier
+        // field is `mpn` (not `manufacturer_part_number`).
         $query = [
             'limit'  => $limit,
-            'fields' => 'id,retailer_id,name,description,url,price,sale_price,currency,availability,condition,image_url,additional_image_urls,images,brand,category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,manufacturer_part_number',
+            'fields' => 'id,retailer_id,name,description,rich_text_description,url,price,sale_price,sale_price_effective_date,currency,availability,condition,quantity_to_sell_on_facebook,image_url,additional_image_urls,images,brand,category,product_type,google_product_category,fb_product_category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,mpn,mobile_link,custom_label_0,custom_label_1,custom_label_2,custom_label_3,custom_label_4,internal_label,visibility,review_status',
         ];
         if ($after !== null) {
             $query['after'] = $after;
@@ -59,11 +62,13 @@ class ProductService
         $account = $catalog->account;
         $client  = $this->accountService->getApiClient($account);
 
+        // Meta expects a decimal amount (e.g. 19.99); the local column stores
+        // integer cents, so convert on the way out. The DB mapping keeps cents.
         $response = $client->request(
             'POST',
             Endpoints::CREATE_PRODUCT,
             Endpoints::catalog($catalog->meta_catalog_id),
-            $data
+            $this->withMetaPrices($data)
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -88,7 +93,7 @@ class ProductService
             'POST',
             Endpoints::UPDATE_PRODUCT,
             Endpoints::product($productItemId),
-            $data
+            $this->withMetaPrices($data)
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -420,6 +425,24 @@ class ProductService
             ->first();
     }
 
+    /**
+     * Busca un producto local por retailer_id. Con un catálogo limita la
+     * búsqueda a ese catálogo; sin él, busca en todos (primer match).
+     * Permite resolver un producto desde Meta sin conocer el catálogo.
+     */
+    public function findByRetailerId(string $retailerId, ?MetaCatalog $catalog = null): ?MetaCatalogItem
+    {
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+
+        $query = $modelClass::where('retailer_id', $retailerId);
+
+        if ($catalog !== null) {
+            $query->where('meta_catalog_id', $catalog->id);
+        }
+
+        return $query->first();
+    }
+
     // =========================================================================
     // Localized Catalog — Override Details API
     // =========================================================================
@@ -534,6 +557,31 @@ class ProductService
     }
 
     /**
+     * Convierte un monto en centavos (formato local) a un decimal de Meta
+     * (ej: 1999 → "19.99"). Meta espera el precio en la moneda del catálogo,
+     * NO en unidades menores.
+     */
+    private function centsToMetaPrice(mixed $amount): string
+    {
+        return number_format(((float) $amount) / 100, 2, '.', '');
+    }
+
+    /**
+     * Devuelve una copia de $data con price/sale_price convertidos de centavos
+     * locales al decimal que espera Meta. La columna local sigue en centavos.
+     */
+    private function withMetaPrices(array $data): array
+    {
+        foreach (['price', 'sale_price'] as $key) {
+            if (isset($data[$key]) && is_numeric($data[$key])) {
+                $data[$key] = $this->centsToMetaPrice($data[$key]);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * Mapea los campos de la API de Meta a las columnas de la base de datos.
      * La API usa 'name', 'url'; la DB usa 'title', 'link'.
      * El precio se normaliza a "AMOUNT CURRENCY" cuando se envían separados.
@@ -572,10 +620,12 @@ class ProductService
             'custom_label_2'          => 'custom_label_2',
             'custom_label_3'          => 'custom_label_3',
             'custom_label_4'          => 'custom_label_4',
+            'internal_label'          => 'internal_label',
             'gtin'                    => 'gtin',
             'manufacturer_part_number' => 'mpn',
             'mpn'                     => 'mpn',
             'visibility'              => 'visibility',
+            'review_status'           => 'review_status',
             'shipping'                => 'shipping',
             'shipping_weight'         => 'shipping_weight',
             'retailer_id'             => 'retailer_id',
@@ -671,13 +721,8 @@ class ProductService
         if (isset($batchData['url']) && !isset($batchData['link'])) {
             $batchData['link'] = $batchData['url'];
         }
-        // items_batch expects price as float string (e.g. "245000.00"), not cents integer
-        if (isset($batchData['price']) && is_numeric($batchData['price']) && (int)$batchData['price'] > 0) {
-            $batchData['price'] = number_format((float)$batchData['price'] / 100, 2, '.', '');
-        }
-        if (isset($batchData['sale_price']) && is_numeric($batchData['sale_price']) && (int)$batchData['sale_price'] > 0) {
-            $batchData['sale_price'] = number_format((float)$batchData['sale_price'] / 100, 2, '.', '');
-        }
+        // items_batch expects a decimal amount (e.g. "2450.00"), not cents integer
+        $batchData = $this->withMetaPrices($batchData);
 
         $payload = [
             'item_type' => 'PRODUCT_ITEM',
@@ -782,9 +827,7 @@ class ProductService
             if (isset($batchData['name']) && !isset($batchData['title'])) $batchData['title'] = $batchData['name'];
             if (isset($batchData['image_url']) && !isset($batchData['image_link'])) $batchData['image_link'] = $batchData['image_url'];
             if (isset($batchData['url']) && !isset($batchData['link'])) $batchData['link'] = $batchData['url'];
-            if (isset($batchData['price']) && is_numeric($batchData['price']) && (int)$batchData['price'] > 0) {
-                $batchData['price'] = number_format((float)$batchData['price'] / 100, 2, '.', '');
-            }
+            $batchData = $this->withMetaPrices($batchData);
 
             $requests[] = ['method' => 'CREATE', 'retailer_id' => $item['retailer_id'], 'data' => $batchData];
         }

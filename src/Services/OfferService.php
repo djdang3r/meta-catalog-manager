@@ -3,7 +3,9 @@
 namespace ScriptDevelop\MetaCatalogManager\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use ScriptDevelop\MetaCatalogManager\Enums\OfferApplicationType;
+use ScriptDevelop\MetaCatalogManager\MetaCatalogApi\ApiClient;
 use ScriptDevelop\MetaCatalogManager\MetaCatalogApi\Endpoints;
 use ScriptDevelop\MetaCatalogManager\Models\MetaCatalog;
 use ScriptDevelop\MetaCatalogManager\Models\MetaCatalogOffer;
@@ -95,14 +97,21 @@ class OfferService
 
         $feedId = $feedResponse['id'] ?? null;
 
-        // Paso 2: Subir los datos de la oferta si se proporciona una URL o payload
-        if ($feedId && isset($data['upload_url'])) {
-            $client->request(
-                'POST',
-                Endpoints::UPLOAD_FEED,
-                Endpoints::feed($feedId),
-                ['url' => $data['upload_url']]
-            );
+        // Paso 2: Subir los datos reales de la oferta al feed.
+        // Meta no expone un endpoint "create offer": las ofertas se ingieren
+        // como un feed OFFER (CSV/TSV). Si viene upload_url se usa directo;
+        // si no, se construye el CSV con los campos validados.
+        if ($feedId) {
+            if (!empty($data['upload_url'])) {
+                $client->request(
+                    'POST',
+                    Endpoints::UPLOAD_FEED,
+                    Endpoints::feed($feedId),
+                    ['url' => $data['upload_url']]
+                );
+            } else {
+                $this->uploadOfferFeedFile($client, $feedId, $data);
+            }
         }
 
         // Paso 3: Guardar en DB
@@ -148,8 +157,9 @@ class OfferService
     /**
      * Actualiza una oferta en la base de datos.
      *
-     * Nota: La API de Meta no permite editar ofertas una vez creadas.
-     * Esta operación actualiza solo el registro local.
+     * Nota: Meta no permite editar una oferta ya creada. Para cambiarla hay que
+     * reemplazar el feed OFFER que la respalda. Esta operación actualiza solo el
+     * registro local.
      */
     public function updateOffer(MetaCatalogOffer $offer, array $data): MetaCatalogOffer
     {
@@ -160,10 +170,104 @@ class OfferService
 
     /**
      * Elimina una oferta (soft delete).
+     *
+     * Meta no permite borrar una oferta suelta; se intenta borrar el feed OFFER
+     * que la respalda (best-effort: nunca lanza si falla).
      */
     public function deleteOffer(MetaCatalogOffer $offer): bool
     {
+        $feedId = $offer->meta_offer_id;
+
+        if ($feedId) {
+            try {
+                $catalog = $offer->catalog;
+
+                if ($catalog) {
+                    $client = $this->accountService->getApiClient($catalog->account);
+                    $client->request('DELETE', Endpoints::DELETE_FEED, Endpoints::feed($feedId));
+                }
+            } catch (\Throwable $e) {
+                Log::channel(config('meta-catalog.logging.channel', 'stack'))
+                    ->warning('OfferService::deleteOffer — no se pudo borrar el feed en Meta', [
+                        'meta_offer_id' => $feedId,
+                        'error'         => $e->getMessage(),
+                    ]);
+            }
+        }
+
         return (bool) $offer->delete();
+    }
+
+    /**
+     * Sube un CSV con una fila de oferta al feed OFFER vía multipart.
+     * Meta ingiere las ofertas desde el archivo del feed, no desde un POST.
+     */
+    private function uploadOfferFeedFile(ApiClient $client, string $feedId, array $data): void
+    {
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, $this->buildOfferFeedCsv($data));
+        rewind($handle);
+
+        try {
+            $client->request(
+                'POST',
+                Endpoints::UPLOAD_FEED,
+                Endpoints::feed($feedId),
+                ['multipart' => [[
+                    'name'     => 'file',
+                    'contents' => $handle,
+                    'filename' => 'offer_feed.csv',
+                    'headers'  => ['Content-Type' => 'text/csv'],
+                ]]]
+            );
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+        }
+    }
+
+    /**
+     * Construye el CSV de una oferta con las columnas del Offer Feed de Meta.
+     */
+    private function buildOfferFeedCsv(array $data): string
+    {
+        $columns = [
+            'offer_id', 'title', 'description', 'application_type', 'value_type',
+            'fixed_amount_off', 'percent_off', 'target_type', 'target_granularity',
+            'target_selection', 'target_filter', 'target_product_retailer_ids',
+            'target_product_group_retailer_ids', 'target_product_set_retailer_ids',
+            'target_shipping_option_types', 'prerequisite_filter',
+            'prerequisite_product_retailer_ids', 'prerequisite_product_group_retailer_ids',
+            'prerequisite_product_set_retailer_ids', 'min_quantity', 'min_subtotal',
+            'target_quantity', 'redemption_limit_per_order', 'coupon_codes',
+            'public_coupon_code', 'redeem_limit_per_user', 'start_date_time',
+            'end_date_time', 'exclude_sale_priced_products', 'offer_terms',
+        ];
+
+        $row = [];
+        foreach ($columns as $column) {
+            $value = $data[$column] ?? null;
+
+            if (is_array($value)) {
+                $value = implode(',', $value);
+            } elseif (is_bool($value)) {
+                $value = $value ? 'true' : 'false';
+            } elseif ($value instanceof \DateTimeInterface) {
+                $value = $value->format('c');
+            }
+
+            $row[] = $value;
+        }
+
+        $stream = fopen('php://temp', 'r+');
+        fputcsv($stream, $columns);
+        fputcsv($stream, $row);
+        rewind($stream);
+        $csv = stream_get_contents($stream);
+        fclose($stream);
+
+        return $csv;
     }
 
     /**

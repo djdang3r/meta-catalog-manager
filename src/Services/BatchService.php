@@ -123,8 +123,10 @@ class BatchService
             ['handle' => $batchRequest->handle]
         );
 
-        // La API retorna status por handle
-        $apiStatus = $response['status'] ?? null;
+        // check_batch_request_status devuelve el estado por handle dentro de data[].
+        $entry = $this->extractBatchEntry($response);
+
+        $apiStatus = $entry['status'] ?? $response['status'] ?? null;
 
         $update = [];
 
@@ -133,6 +135,7 @@ class BatchService
                 'PENDING'    => BatchRequestStatus::PENDING,
                 'PROCESSING' => BatchRequestStatus::PROCESSING,
                 'FINISHED'   => BatchRequestStatus::COMPLETE,
+                'SUCCESS'    => BatchRequestStatus::COMPLETE,
                 'FAILED'     => BatchRequestStatus::FAILED,
             ];
 
@@ -140,9 +143,9 @@ class BatchService
 
             if (in_array($update['status'], [BatchRequestStatus::COMPLETE, BatchRequestStatus::FAILED])) {
                 $update['completed_at']   = now();
-                $update['success_count']  = $response['num_persisted'] ?? 0;
-                $update['error_count']    = $response['num_invalid_requests'] ?? 0;
-                $update['errors']         = $response['errors'] ?? null;
+                $update['success_count']  = $entry['num_persisted'] ?? $response['num_persisted'] ?? 0;
+                $update['error_count']    = $entry['num_invalid_requests'] ?? $response['num_invalid_requests'] ?? 0;
+                $update['errors']         = $entry['errors'] ?? $response['errors'] ?? null;
             }
         }
 
@@ -151,6 +154,21 @@ class BatchService
         }
 
         return $batchRequest->fresh();
+    }
+
+    /**
+     * Extrae la entrada por-handle de una respuesta de check_batch_request_status,
+     * que envuelve el resultado en data[].
+     */
+    private function extractBatchEntry(array $response): array
+    {
+        $data = $response['data'] ?? [];
+
+        if (isset($data[0]) && is_array($data[0])) {
+            return $data[0];
+        }
+
+        return is_array($data) ? $data : [];
     }
 
     /**
