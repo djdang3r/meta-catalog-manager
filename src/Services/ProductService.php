@@ -772,7 +772,9 @@ class ProductService
      */
     private function hasVariantFields(array $data): bool
     {
-        $variantKeys = ['item_group_id', 'color', 'size', 'gender', 'age_group', 'material', 'pattern', 'additional_variant_attribute'];
+        // El nombre documentado por Meta es el plural (`additional_variant_attributes`,
+        // objeto JSON {nombre: valor}); se acepta también el singular antiguo.
+        $variantKeys = ['item_group_id', 'color', 'size', 'gender', 'age_group', 'material', 'pattern', 'additional_variant_attributes', 'additional_variant_attribute'];
         foreach ($variantKeys as $key) {
             if (!empty($data[$key])) return true;
         }
@@ -817,6 +819,15 @@ class ProductService
         }
 
         $batchData = $this->withMetaPrices($batchData);
+
+        // items_batch espera el objeto de atributos de variante como cadena JSON.
+        if (isset($batchData['additional_variant_attributes']) && is_array($batchData['additional_variant_attributes'])) {
+            $batchData['additional_variant_attributes'] = json_encode(
+                $batchData['additional_variant_attributes'],
+                JSON_UNESCAPED_UNICODE
+            );
+        }
+        unset($batchData['additional_variant_attribute']);
 
         // Moneda ISO 4217 obligatoria en el importe. Se toma del propio item o del
         // catálogo; si no hay ninguna, se falla con un mensaje accionable en lugar

@@ -1,3 +1,8 @@
+## [1.0.77] - 2026-10-15
+
+### Fixed
+- El atributo de variante se documenta en Meta como **`additional_variant_attributes`** (plural) y **objeto JSON `{nombre: valor}`**. `hasVariantFields()` no reconocía el plural (una variante enviada así no se publicaba por `items_batch` y perdía su `item_group_id`) y el lote enviaba el valor sin serializar. Ahora acepta ambos nombres y serializa el objeto para `items_batch`.
+
 ## [1.0.76] - 2026-10-15
 
 ### Fixed
