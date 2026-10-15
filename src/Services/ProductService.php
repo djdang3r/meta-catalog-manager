@@ -782,17 +782,27 @@ class ProductService
     /**
      * Crea un producto vía items_batch (necesario para item_group_id y variantes).
      */
-    private function createViaItemsBatch(MetaCatalog $catalog, array $data): MetaCatalogItem
-    {
-        $account = $catalog->account;
-        $client  = $this->accountService->getApiClient($account);
 
+    /**
+     * Payload de un item para `items_batch` (variantes incluidas).
+     *
+     * `items_batch` no comparte el contrato de `/products`: necesita el
+     * identificador, los nombres de campo propios (title/image_link/link...) y el
+     * importe **con su moneda ISO 4217** ("600000.00 COP"). Sin la moneda Meta
+     * rechaza la entrada, y sin este mapeo el `item_group_id` de la variante se
+     * perdía al publicarse por el endpoint de productos.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function batchItemPayload(MetaCatalog $catalog, array $data): array
+    {
         $batchData = $data;
-        // items_batch requires 'id' field (use retailer_id for new products)
+
         if (empty($batchData['id'])) {
-            $batchData['id'] = $data['retailer_id'];
+            $batchData['id'] = $data['retailer_id'] ?? null;
         }
-        // items_batch uses different field names than /products endpoint
+
         if (isset($batchData['name']) && !isset($batchData['title'])) {
             $batchData['title'] = $batchData['name'];
         }
@@ -805,8 +815,39 @@ class ProductService
         if (isset($batchData['url']) && !isset($batchData['link'])) {
             $batchData['link'] = $batchData['url'];
         }
-        // items_batch expects a decimal amount (e.g. "2450.00"), not cents integer
+
         $batchData = $this->withMetaPrices($batchData);
+
+        // Moneda ISO 4217 obligatoria en el importe. Se toma del propio item o del
+        // catálogo; si no hay ninguna, se falla con un mensaje accionable en lugar
+        // de publicar un precio sin moneda.
+        $currency = trim((string) ($data['currency'] ?? $catalog->currency ?? ''));
+
+        foreach (['price', 'sale_price'] as $priceKey) {
+            if (!isset($batchData[$priceKey]) || !is_string($batchData[$priceKey])) {
+                continue;
+            }
+
+            if (!str_contains($batchData[$priceKey], ' ')) {
+                if ($currency === '') {
+                    throw new \RuntimeException(
+                        "Falta la moneda (ISO 4217) para publicar el precio de {$data['retailer_id']} por items_batch."
+                    );
+                }
+
+                $batchData[$priceKey] = trim($batchData[$priceKey].' '.strtoupper($currency));
+            }
+        }
+
+        return $batchData;
+    }
+
+    private function createViaItemsBatch(MetaCatalog $catalog, array $data): MetaCatalogItem
+    {
+        $account = $catalog->account;
+        $client  = $this->accountService->getApiClient($account);
+
+        $batchData = $this->batchItemPayload($catalog, $data);
 
         $payload = [
             'item_type' => 'PRODUCT_ITEM',

@@ -1,3 +1,8 @@
+## [1.0.76] - 2026-10-15
+
+### Fixed
+- `items_batch` (variantes) enviaba el importe sin su moneda ISO 4217 (`"600000.00"`), que es obligatoria en ese endpoint, y el mapeo de campos del lote estaba embebido en un método privado. Nuevo `batchItemPayload()`, público y probable, que construye el item del lote con `id`, los nombres de campo propios y el precio con moneda (`"600000.00 COP"`). Si no hay moneda disponible falla con un mensaje accionable en lugar de publicar un precio sin moneda.
+
 ## [1.0.75] - 2026-10-15
 
 ### Fixed
