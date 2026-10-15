@@ -958,14 +958,15 @@ class ProductService
 
         $requests = [];
         foreach ($items as $item) {
-            $batchData = $item;
-            if (empty($batchData['id'])) $batchData['id'] = $item['retailer_id'];
-            if (isset($batchData['name']) && !isset($batchData['title'])) $batchData['title'] = $batchData['name'];
-            if (isset($batchData['image_url']) && !isset($batchData['image_link'])) $batchData['image_link'] = $batchData['image_url'];
-            if (isset($batchData['url']) && !isset($batchData['link'])) $batchData['link'] = $batchData['url'];
-            $batchData = $this->withMetaPrices($batchData);
-
-            $requests[] = ['method' => 'CREATE', 'retailer_id' => $item['retailer_id'], 'data' => $batchData];
+            // Mismo contrato que el resto del lote: `batchItemPayload()` aporta el
+            // `id`, los nombres de campo propios de items_batch y el precio con su
+            // moneda ISO 4217 (antes se duplicaba el mapeo y el precio viajaba sin
+            // moneda, que Meta rechaza).
+            $requests[] = [
+                'method' => 'CREATE',
+                'retailer_id' => $item['retailer_id'],
+                'data' => $this->batchItemPayload($catalog, $item),
+            ];
         }
 
         $payload = ['item_type' => 'PRODUCT_ITEM', 'requests' => $requests];

@@ -1,3 +1,8 @@
+## [1.0.78] - 2026-10-15
+
+### Fixed
+- `createBatch()` duplicaba el mapeo de `items_batch` y enviaba el precio con `withMetaPrices()` (sin moneda), así que Meta rechazaba las entradas. Ahora usa `batchItemPayload()`, la misma fuente de verdad que las variantes: `id`, campos propios del lote y precio con moneda ISO 4217.
+
 ## [1.0.77] - 2026-10-15
 
 ### Fixed
