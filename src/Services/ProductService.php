@@ -195,6 +195,57 @@ class ProductService
      * @param  array<int, string>  $seenProductIds  ids de Meta vistos en la lectura
      * @return int  número de productos marcados como borrados
      */
+
+    /**
+     * Campos de imagen locales a partir de un item de la API de Meta.
+     *
+     * Si Meta devuelve `images` (aunque sea una lista vacía) es la fuente de
+     * verdad y la lista local se actualiza, incluido el caso de haberse borrado
+     * todas las imágenes: antes un `!empty()` saltaba el bloque y la lista local
+     * se quedaba con imágenes que ya no existen en Meta.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    public function imageFieldsFromApiItem(array $item): array
+    {
+        $fields = [];
+
+        if (array_key_exists('images', $item) && is_array($item['images'])) {
+            $allUrls = [];
+
+            foreach ($item['images'] as $imgJson) {
+                $decoded = is_string($imgJson) ? json_decode($imgJson, true) : $imgJson;
+
+                if (isset($decoded['url']) && !empty($decoded['url'])) {
+                    $allUrls[] = $decoded['url'];
+                }
+            }
+
+            $fields['image_url'] = $allUrls[0] ?? null;
+            $fields['additional_image_urls'] = count($allUrls) > 1 ? array_slice($allUrls, 1) : [];
+
+            return $fields;
+        }
+
+        // Fallback a los campos explícitos cuando `images` no viaja.
+        if (array_key_exists('image_url', $item)) {
+            $fields['image_url'] = $item['image_url'];
+        }
+
+        if (array_key_exists('additional_image_urls', $item)) {
+            $fields['additional_image_urls'] = is_array($item['additional_image_urls'])
+                ? $item['additional_image_urls']
+                : explode(',', (string) $item['additional_image_urls']);
+        } elseif (array_key_exists('additional_image_link', $item)) {
+            $fields['additional_image_urls'] = is_array($item['additional_image_link'])
+                ? $item['additional_image_link']
+                : explode(',', (string) $item['additional_image_link']);
+        }
+
+        return $fields;
+    }
+
     public function cleanupOrphans(MetaCatalog $catalog, array $seenProductIds): int
     {
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -330,33 +381,9 @@ class ProductService
                 // Images — use the `images` field (array of JSON strings) as canonical source.
                 // It contains ALL product images (main + additional) regardless of how they were added.
                 // Fall back to explicit image_url/additional_image_urls fields if `images` not present.
-                if (array_key_exists('images', $item) && is_array($item['images']) && !empty($item['images'])) {
-                    $allUrls = [];
-                    foreach ($item['images'] as $imgJson) {
-                        $decoded = is_string($imgJson) ? json_decode($imgJson, true) : $imgJson;
-                        if (isset($decoded['url']) && !empty($decoded['url'])) {
-                            $allUrls[] = $decoded['url'];
-                        }
-                    }
-                    if (!empty($allUrls)) {
-                        $fillData['image_url'] = $allUrls[0];
-                        $fillData['additional_image_urls'] = count($allUrls) > 1 ? array_slice($allUrls, 1) : [];
-                    }
-                } else {
-                    // Fallback to explicit fields
-                    if (array_key_exists('image_url', $item)) {
-                        $fillData['image_url'] = $item['image_url'];
-                    }
-                    if (array_key_exists('additional_image_urls', $item)) {
-                        $fillData['additional_image_urls'] = is_array($item['additional_image_urls'])
-                            ? $item['additional_image_urls']
-                            : explode(',', $item['additional_image_urls']);
-                    } elseif (array_key_exists('additional_image_link', $item)) {
-                        $fillData['additional_image_urls'] = is_array($item['additional_image_link'])
-                            ? $item['additional_image_link']
-                            : explode(',', $item['additional_image_link']);
-                    }
-                }
+                // Imágenes: `images` es la fuente de verdad cuando viene (aunque
+                // venga vacío, que es cuando se han borrado todas en Meta).
+                $fillData = array_merge($fillData, $this->imageFieldsFromApiItem($item));
 
                 // Links
                 if (array_key_exists('url', $item) || array_key_exists('link', $item))

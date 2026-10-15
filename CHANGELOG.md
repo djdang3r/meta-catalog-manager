@@ -1,3 +1,8 @@
+## [1.0.74] - 2026-10-15
+
+### Fixed
+- La sincronización no limpiaba las imágenes locales cuando en Meta se borraban todas: el bloque de `images` sólo se aplicaba si la lista venía con contenido, así que `additional_image_urls` (y `image_url`) quedaban obsoletos. Ahora `images` presente es la fuente de verdad, incluso vacío, y el mapeo queda extraído en `imageFieldsFromApiItem()`.
+
 # Changelog
 
 ## [1.0.71] - 2026-08-20
