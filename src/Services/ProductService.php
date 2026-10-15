@@ -188,6 +188,84 @@ class ProductService
      *
      * @return int Cantidad de productos sincronizados
      */
+
+    /**
+     * Soft-delete de los productos locales que ya no existen en Meta.
+     *
+     * @param  array<int, string>  $seenProductIds  ids de Meta vistos en la lectura
+     * @return int  número de productos marcados como borrados
+     */
+    public function cleanupOrphans(MetaCatalog $catalog, array $seenProductIds): int
+    {
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+
+        // Sólo se consideran huérfanos los items que estuvieron en Meta: un item
+        // local todavía sin publicar no es un fantasma y no debe borrarse.
+        $orphaned = $modelClass::where('meta_catalog_id', $catalog->id)
+            ->whereNotNull('meta_product_item_id')
+            ->whereNotIn('meta_product_item_id', $seenProductIds);
+
+        $orphanedCount = $orphaned->count();
+
+        if ($orphanedCount > 0) {
+            $orphaned->delete();
+
+            Log::info('ProductService::cleanupOrphans — cleaned up orphaned products', [
+                'catalog_id' => $catalog->meta_catalog_id,
+                'orphaned_count' => $orphanedCount,
+            ]);
+        }
+
+        return $orphanedCount;
+    }
+
+    /**
+     * Deduce el `item_group_id` de una variante a partir del patrón del
+     * `retailer_id` ("KLAN-009-38" -> padre "KLAN-009").
+     *
+     * La búsqueda queda SIEMPRE acotada al catálogo: antes el `orWhere` sin
+     * agrupar rompía el filtro y podía tomar el padre de otro catálogo (incluso de
+     * otra empresa con el mismo patrón de SKU).
+     */
+    public function inferItemGroupId(MetaCatalog $catalog, $localItem): bool
+    {
+        $retailerId = (string) $localItem->retailer_id;
+
+        if ($retailerId === '' || !empty($localItem->item_group_id)) {
+            return false;
+        }
+
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+
+        $parent = $modelClass::where('meta_catalog_id', $catalog->id)
+            ->where(function ($query) use ($retailerId) {
+                $query->where('item_group_id', $retailerId)
+                    ->orWhere(function ($sub) use ($retailerId) {
+                        $parts = explode('-', $retailerId);
+
+                        while (count($parts) > 1) {
+                            array_pop($parts);
+                            $candidate = implode('-', $parts);
+                            $sub->orWhere('retailer_id', $candidate)->orWhere('item_group_id', $candidate);
+                        }
+                    });
+            })
+            ->whereNotNull('item_group_id')
+            ->limit(1)
+            ->get()
+            ->first(function ($parent) use ($localItem) {
+                return $parent->item_group_id && $parent->retailer_id !== $localItem->retailer_id;
+            });
+
+        if (!$parent) {
+            return false;
+        }
+
+        $localItem->update(['item_group_id' => $parent->item_group_id]);
+
+        return true;
+    }
+
     public function syncFromApi(MetaCatalog $catalog): int
     {
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -342,28 +420,7 @@ class ProductService
                 // Infer item_group_id from retailer_id pattern when Meta doesn't provide it.
                 // e.g., "KLAN-009-38" is a variant of parent "KLAN-009"
                 if (empty($localItem->item_group_id) && !empty($localItem->retailer_id)) {
-                    $retailerId = $localItem->retailer_id;
-                    // Try to find a parent by checking if any product's retailer_id is a prefix of this one
-                    $modelClass::where('meta_catalog_id', $catalog->id)
-                        ->where('item_group_id', $retailerId)
-                        ->orWhere(function ($q) use ($retailerId) {
-                            // Heuristic: the variant's retailer_id starts with the parent's retailer_id + "-"
-                            // e.g., "KLAN-009-38" has parent "KLAN-009"
-                            $parts = explode('-', $retailerId);
-                            while (count($parts) > 1) {
-                                array_pop($parts);
-                                $candidate = implode('-', $parts);
-                                $q->orWhere('retailer_id', $candidate)->orWhere('item_group_id', $candidate);
-                            }
-                        })
-                        ->whereNotNull('item_group_id')
-                        ->limit(1)
-                        ->get()
-                        ->each(function ($parent) use ($localItem, $catalog) {
-                            if ($parent->item_group_id && $parent->retailer_id !== $localItem->retailer_id) {
-                                $localItem->update(['item_group_id' => $parent->item_group_id]);
-                            }
-                        });
+                    $this->inferItemGroupId($catalog, $localItem);
                 }
 
                 // Registrar cambio de inventario si la cantidad cambió o es un producto nuevo
@@ -394,21 +451,11 @@ class ProductService
 
         } while ($hasNext && $after !== null);
 
-        // Clean up orphaned products: soft-delete local products no longer present in Meta.
-        if (!empty($seenProductIds)) {
-            $orphaned = $modelClass::where('meta_catalog_id', $catalog->id)
-                ->whereNotNull('meta_product_item_id')
-                ->whereNotIn('meta_product_item_id', $seenProductIds);
-
-            $orphanedCount = $orphaned->count();
-            if ($orphanedCount > 0) {
-                $orphaned->delete();
-                Log::info('ProductService::syncFromApi — cleaned up orphaned products', [
-                    'catalog_id' => $catalog->meta_catalog_id,
-                    'orphaned_count' => $orphanedCount,
-                ]);
-            }
-        }
+        // Clean up orphaned products: soft-delete local products no longer present in
+        // Meta. Se ejecuta SIEMPRE que la lectura termine correctamente, incluido el
+        // caso de que Meta devuelva 0 productos (antes se saltaba y quedaban
+        // fantasmas). Si la lectura falla, se lanza y no se borra nada.
+        $this->cleanupOrphans($catalog, $seenProductIds);
 
         return $count;
     }
