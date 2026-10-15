@@ -4,6 +4,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Precios en centavos
+    |--------------------------------------------------------------------------
+    |
+    | La Graph API interpreta un número sin moneda como centavos. Si tu
+    | aplicación guarda los precios en centavos (600000 = COP 6.000), activa
+    | esta opción: el valor se envía tal cual y no se divide entre 100.
+    |
+    */
+    'prices' => [
+        'already_in_cents' => env('META_CATALOG_PRICES_IN_CENTS', false),
+    ],
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Configuración de la Graph API de Meta
     |--------------------------------------------------------------------------
     |

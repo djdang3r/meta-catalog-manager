@@ -1,3 +1,11 @@
+## [1.0.75] - 2026-10-15
+
+### Fixed
+- `centsToMetaPrice()` dividía entre 100 un valor que la Graph API ya interpreta como **centavos**, así que los precios viajaban 100 veces más bajos (variantes, `products`, WooCommerce). Con `meta-catalog.prices.already_in_cents` (o `META_CATALOG_PRICES_IN_CENTS=true`) el valor se envía tal cual; sin la opción se mantiene el comportamiento anterior para no romper a quien lo compensaba por su cuenta.
+
+### Added
+- Opción de configuración `meta-catalog.prices.already_in_cents` (por defecto `false`).
+
 ## [1.0.74] - 2026-10-15
 
 ### Fixed

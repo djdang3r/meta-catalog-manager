@@ -637,6 +637,16 @@ class ProductService
      */
     private function centsToMetaPrice(mixed $amount): string
     {
+        // Meta interpreta un número sin moneda como CENTAVOS: publicar
+        // "600000.00" deja el precio en COP 6.000. Dividir entre 100 enviaba el
+        // precio 100 veces más barato (el bug de las variantes, `products` y
+        // WooCommerce). Con `prices.already_in_cents` el valor viaja tal cual
+        // (unidad de la app); sin la opción se mantiene el comportamiento
+        // anterior para no romper a quien lo compensaba por su cuenta.
+        if (config('meta-catalog.prices.already_in_cents', false)) {
+            return number_format((float) $amount, 2, '.', '');
+        }
+
         return number_format(((float) $amount) / 100, 2, '.', '');
     }
 
