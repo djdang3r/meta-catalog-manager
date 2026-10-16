@@ -1,3 +1,8 @@
+## [1.0.79] - 2026-10-15
+
+### Fixed
+- `createSingle()` enviaba el precio como texto (`"2100000.00"`) al endpoint `/products`, que exige un número: Meta devolvía `(#100) Param price must be a number` y el alta fallaba. Nuevo `withMetaPricesNumeric()`, que con `meta-catalog.prices.already_in_cents` envía el entero en centavos y sin la opción mantiene el importe (comportamiento anterior).
+
 ## [1.0.78] - 2026-10-15
 
 ### Fixed

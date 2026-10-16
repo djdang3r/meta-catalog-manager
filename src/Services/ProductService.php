@@ -68,7 +68,7 @@ class ProductService
             'POST',
             Endpoints::CREATE_PRODUCT,
             Endpoints::catalog($catalog->meta_catalog_id),
-            $this->withMetaPrices($data)
+            $this->withMetaPricesNumeric($data)
         );
 
         $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
@@ -654,6 +654,27 @@ class ProductService
      * Devuelve una copia de $data con price/sale_price convertidos de centavos
      * locales al decimal que espera Meta. La columna local sigue en centavos.
      */
+    /**
+     * Igual que `withMetaPrices()`, pero devolviendo el precio como **número**.
+     *
+     * El endpoint `/products` (crear producto) exige `price` numérico: enviar el texto
+     * "2100000.00" devuelve `(#100) Param price must be a number`. Con la opción
+     * `meta-catalog.prices.already_in_cents` el valor ya está en centavos y se envía el
+     * entero; sin ella se mantiene el importe (comportamiento anterior).
+     */
+    private function withMetaPricesNumeric(array $data): array
+    {
+        foreach (['price', 'sale_price'] as $key) {
+            if (isset($data[$key]) && is_numeric($data[$key])) {
+                $data[$key] = config('meta-catalog.prices.already_in_cents', false)
+                    ? (int) round((float) $data[$key])
+                    : round(((float) $data[$key]) / 100, 2);
+            }
+        }
+
+        return $data;
+    }
+
     private function withMetaPrices(array $data): array
     {
         foreach (['price', 'sale_price'] as $key) {
