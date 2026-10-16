@@ -1,3 +1,8 @@
+## [1.0.80] - 2026-10-15
+
+### Fixed
+- `items_batch` con la moneda explícita espera el **importe** (`"25000.00 COP"`), no centavos: enviar `"2500000.00 COP"` dejaba el precio 100 veces más alto (verificado en producción: COP 2.500.000 en lugar de COP 25.000). `batchItemPayload()` convierte ahora el valor en centavos al importe antes de añadir la moneda.
+
 ## [1.0.79] - 2026-10-15
 
 ### Fixed

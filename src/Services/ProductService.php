@@ -867,7 +867,16 @@ class ProductService
                     );
                 }
 
-                $batchData[$priceKey] = trim($batchData[$priceKey].' '.strtoupper($currency));
+                // Con la moneda explícita Meta espera el IMPORTE ("25000.00 COP"),
+                // no centavos: verificado en producción (enviar "2500000.00 COP"
+                // dejó el precio en COP 2.500.000). Si el valor viene en centavos
+                // (opción already_in_cents) se convierte; si ya es importe, se deja.
+                $valor = (float) $batchData[$priceKey];
+                if (config('meta-catalog.prices.already_in_cents', false)) {
+                    $valor /= 100;
+                }
+
+                $batchData[$priceKey] = number_format($valor, 2, '.', '').' '.strtoupper($currency);
             }
         }
 
