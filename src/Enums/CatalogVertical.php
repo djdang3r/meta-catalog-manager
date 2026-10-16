@@ -21,7 +21,12 @@ enum CatalogVertical: string
     case MEDIA_TITLES               = 'media_titles';
     case OFFER_ITEMS                = 'offer_items';
     case OFFLINE_COMMERCE           = 'offline_commerce';
+    /**
+     * @deprecated 'professional_services' NO es un valor oficial de Meta. Se
+     * conserva solo por compatibilidad hacia atrás; el valor oficial es SERVICES.
+     */
     case PROFESSIONAL_SERVICES      = 'professional_services';
+    case SERVICES                   = 'services';
     case TRANSACTABLE_ITEMS         = 'transactable_items';
     case VEHICLES                   = 'vehicles';
 }

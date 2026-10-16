@@ -1,3 +1,8 @@
+## [1.0.81] - 2026-10-16
+
+### Fixed
+- `CatalogVertical` no incluía el valor oficial **`services`** y sí el inexistente `professional_services`: guardar `services` (uno de los 16 verticales reales de Meta) reventaba al hidratar el modelo (`ValueError: "services" is not a valid backing value`). Nuevo caso `SERVICES`; `PROFESSIONAL_SERVICES` queda marcado como deprecado por compatibilidad.
+
 ## [1.0.80] - 2026-10-15
 
 ### Fixed
