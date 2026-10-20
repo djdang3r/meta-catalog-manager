@@ -34,7 +34,7 @@ class ProductService
         // field is `mpn` (not `manufacturer_part_number`).
         $query = [
             'limit'  => $limit,
-            'fields' => 'id,retailer_id,name,description,rich_text_description,url,price,sale_price,sale_price_effective_date,currency,availability,condition,quantity_to_sell_on_facebook,image_url,additional_image_urls,images,brand,category,product_type,google_product_category,fb_product_category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,mpn,mobile_link,custom_label_0,custom_label_1,custom_label_2,custom_label_3,custom_label_4,internal_label,visibility,review_status',
+            'fields' => 'id,retailer_id,name,description,rich_text_description,url,price,sale_price,sale_price_effective_date,currency,availability,condition,quantity_to_sell_on_facebook,image_url,image_cdn_urls,additional_image_urls,images,brand,category,product_type,google_product_category,fb_product_category,item_group_id,color,size,gender,age_group,material,pattern,additional_variant_attribute,gtin,mpn,mobile_link,custom_label_0,custom_label_1,custom_label_2,custom_label_3,custom_label_4,internal_label,visibility,review_status',
         ];
         if ($after !== null) {
             $query['after'] = $after;
@@ -139,7 +139,7 @@ class ProductService
         // Meta API single-product endpoint in v25.0 rejects certain fields
         // that the list endpoint accepts (item_group_id, additional_variant_attribute, etc).
         // Use only core fields that are known to work on the single endpoint.
-        $coreFields = 'id,name,description,url,price,sale_price,currency,availability,condition,image_url,images,brand,category,gtin';
+        $coreFields = 'id,name,description,url,price,sale_price,currency,availability,condition,image_url,image_cdn_urls,images,brand,category,gtin';
 
         $response = $client->request(
             'GET',
@@ -154,6 +154,10 @@ class ProductService
         $item = $modelClass::where('meta_product_item_id', $productItemId)->firstOrFail();
 
         $columns = $this->mapApiDataToColumns($response);
+
+        if (array_key_exists('image_cdn_urls', $response)) {
+            $columns['image_cdn_url'] = $this->cdnUrlFrom($response['image_cdn_urls']);
+        }
 
         // Clean prices to match syncFromApi's cents format
         if (array_key_exists('price', $columns)) {
@@ -207,6 +211,28 @@ class ProductService
      * @param  array<string, mixed>  $item
      * @return array<string, mixed>
      */
+    /**
+     * Extrae la mejor URL del CDN de Meta desde `image_cdn_urls`
+     * (lista de {key, value}; `full` es la de mayor calidad, `requested` la pedida).
+     */
+    private function cdnUrlFrom(mixed $cdnUrls): ?string
+    {
+        if (! is_array($cdnUrls)) {
+            return null;
+        }
+
+        $byKey = [];
+        foreach ($cdnUrls as $entry) {
+            if (is_array($entry) && isset($entry['key'], $entry['value'])) {
+                $byKey[(string) $entry['key']] = (string) $entry['value'];
+            }
+        }
+
+        $url = $byKey['full'] ?? $byKey['requested'] ?? null;
+
+        return ($url !== null && $url !== '') ? $url : null;
+    }
+
     public function imageFieldsFromApiItem(array $item): array
     {
         $fields = [];
@@ -384,6 +410,10 @@ class ProductService
                 // Imágenes: `images` es la fuente de verdad cuando viene (aunque
                 // venga vacío, que es cuando se han borrado todas en Meta).
                 $fillData = array_merge($fillData, $this->imageFieldsFromApiItem($item));
+
+                if (array_key_exists('image_cdn_urls', $item)) {
+                    $fillData['image_cdn_url'] = $this->cdnUrlFrom($item['image_cdn_urls']);
+                }
 
                 // Links
                 if (array_key_exists('url', $item) || array_key_exists('link', $item))

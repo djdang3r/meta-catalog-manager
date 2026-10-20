@@ -1,3 +1,8 @@
+## [1.0.86] - 2026-10-20
+
+### Added
+- `meta_catalog_items.image_cdn_url`: se guarda la copia de la imagen en el CDN de Meta (`image_cdn_urls`, campo oficial de la API). `ImageService` la usa como fuente de descarga de la imagen principal, así un catálogo se puede **reimportar/sincronizar aunque la `image_url` del merchant esté caída** (p. ej. un storage propio ya limpiado). `getFromApi()` y `getSingle()` ahora piden `image_cdn_urls`.
+
 ## [1.0.85] - 2026-10-20
 
 ### Fixed

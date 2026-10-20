@@ -42,6 +42,7 @@ class MetaCatalogItem extends Model
         'condition',
         'quantity_to_sell_on_facebook',
         'image_url',
+        'image_cdn_url',
         'additional_image_urls',
         'link',
         'mobile_link',

@@ -21,9 +21,11 @@ class ImageService
     {
         $count = 0;
 
-        // Imagen principal
+        // Imagen principal. Se descarga desde el CDN de Meta (`image_cdn_url`) si
+        // existe: es la copia que Meta guardó, así sigue funcionando aunque la URL
+        // del merchant (p. ej. un storage propio ya limpiado) esté caída.
         if (!empty($item->image_url)) {
-            $this->syncImage($item, $item->image_url, 'product_main', 0);
+            $this->syncImage($item, $item->image_url, 'product_main', 0, $item->image_cdn_url ?: null);
             $count++;
         }
 
@@ -84,7 +86,8 @@ class ImageService
         MetaCatalogItem $item,
         string $originalUrl,
         string $type,
-        int $position = 0
+        int $position = 0,
+        ?string $downloadUrl = null
     ): MetaCatalogImage {
         $modelClass = config('meta-catalog.models.meta_catalog_image', MetaCatalogImage::class);
 
@@ -104,7 +107,7 @@ class ImageService
             $image->downloaded_at = null;
             $image->save();
 
-            $this->download($image);
+            $this->download($image, $downloadUrl);
         }
 
         return $image->fresh();
@@ -113,8 +116,11 @@ class ImageService
     /**
      * Descarga el archivo de una imagen y lo guarda en storage.
      * Reintentos configurables via meta-catalog.media.retries.
+     *
+     * @param  string|null  $downloadUrl  Fuente alternativa (p. ej. el CDN de Meta)
+     *                                    cuando la URL del merchant no responde.
      */
-    public function download(MetaCatalogImage $image): bool
+    public function download(MetaCatalogImage $image, ?string $downloadUrl = null): bool
     {
         $retries = config('meta-catalog.media.retries', 3);
         $disk    = config('meta-catalog.media.disk', 'public');
@@ -123,17 +129,19 @@ class ImageService
             "meta-catalog/products/{$image->type}"
         );
 
+        $sourceUrl = $downloadUrl ?: $image->original_url;
+
         for ($attempt = 1; $attempt <= $retries; $attempt++) {
             try {
                 $response = \Illuminate\Support\Facades\Http::timeout(30)
-                    ->get($image->original_url);
+                    ->get($sourceUrl);
 
                 if (!$response->successful()) {
                     continue;
                 }
 
                 $binary   = $response->body();
-                $mimeType = $this->detectMimeType($binary, $image->original_url);
+                $mimeType = $this->detectMimeType($binary, $sourceUrl);
                 $ext      = $this->mimeToExtension($mimeType);
                 $fileName = Str::ulid() . '.' . $ext;
 
@@ -159,7 +167,7 @@ class ImageService
                     \Illuminate\Support\Facades\Log::channel(
                         config('meta-catalog.logging.channel', 'stack')
                     )->warning('MetaCatalog: no se pudo descargar imagen.', [
-                        'url'     => $image->original_url,
+                        'url'     => $sourceUrl,
                         'error'   => $e->getMessage(),
                         'attempt' => $attempt,
                     ]);
