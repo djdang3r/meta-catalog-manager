@@ -1,3 +1,8 @@
+## [1.0.85] - 2026-10-20
+
+### Fixed
+- `ImageService::findExistingLocalCopy()` solo buscaba la copia local bajo `meta-catalog/*/products/{meta_product_item_id}`. Si el mismo archivo estaba guardado bajo el id LOCAL del item (imagen subida desde el panel) u otra ruta, no se encontraba y la imagen quedaba rota. Ahora busca primero la ruta canónica por hash (`products/{2}/{sha256}.{ext}`) y luego **por contenido en todo `meta-catalog`**, así recupera la copia exista donde exista.
+
 ## [1.0.84] - 2026-10-20
 
 ### Fixed

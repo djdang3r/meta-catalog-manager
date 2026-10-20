@@ -203,26 +203,29 @@ class ImageService
      */
     private function findExistingLocalCopy(MetaCatalogImage $image, string $disk): ?string
     {
-        $productId    = $image->item?->meta_product_item_id;
         $expectedHash = $this->contentHashFromUrl($image->original_url);
 
-        if (! $productId || $expectedHash === null) {
+        if ($expectedHash === null) {
             return null;
         }
 
         $storage = Storage::disk($disk);
 
-        foreach ($storage->directories('meta-catalog') as $catalogDir) {
-            $productDir = $catalogDir.'/products/'.$productId;
-
-            if (! $storage->exists($productDir)) {
-                continue;
+        // 1) Ruta canónica del upload por hash: products/{2}/{sha256}.{ext}
+        //    (el nombre del fichero ES el hash, no hace falta leerlo).
+        foreach ($storage->files('products/'.substr($expectedHash, 0, 2)) as $file) {
+            if (pathinfo($file, PATHINFO_FILENAME) === $expectedHash) {
+                return $file;
             }
+        }
 
-            foreach ($storage->files($productDir) as $file) {
-                if (hash('sha256', $storage->get($file)) === $expectedHash) {
-                    return $file;
-                }
+        // 2) Búsqueda por contenido en todo el árbol de catálogo. El mismo fichero
+        //    puede estar bajo el id LOCAL del item (subida desde el panel) o bajo el
+        //    id de Meta, no solo bajo `products/{meta_product_item_id}`. Solo corre
+        //    cuando la descarga de la URL de origen falla.
+        foreach ($storage->allFiles('meta-catalog') as $file) {
+            if (hash('sha256', $storage->get($file)) === $expectedHash) {
+                return $file;
             }
         }
 
