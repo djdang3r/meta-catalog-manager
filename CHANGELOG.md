@@ -1,3 +1,8 @@
+## [1.0.82] - 2026-10-20
+
+### Fixed
+- El CHECK `chk_visibility` de `meta_catalog_items` solo permitía `published` y `staging`, pero Meta devuelve `visibility = hidden` para los items variante. El `syncFromApi()` reventaba con `SQLSTATE[23514]` en el primer item oculto y abortaba el sync completo (en producción solo se importaban 2 de 14 productos). El constraint ahora incluye `hidden` (migración nueva que lo recrea en instalaciones existentes + migración de creación corregida para instalaciones nuevas).
+
 ## [1.0.81] - 2026-10-16
 
 ### Fixed

@@ -110,13 +110,13 @@ return new class extends Migration
             DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_item_type CHECK (item_type IN ('PRODUCT_ITEM', 'VEHICLE', 'HOTEL', 'HOTEL_ROOM', 'FLIGHT', 'DESTINATION', 'HOME_LISTING', 'VEHICLE_OFFER'))");
             DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_availability CHECK (availability IN ('in stock', 'out of stock', 'preorder', 'available for order', 'discontinued'))");
             DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_condition CHECK (condition IN ('new', 'refurbished', 'used'))");
-            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_visibility CHECK (visibility IN ('published', 'staging'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_visibility CHECK (visibility IN ('published', 'staging', 'hidden'))");
         }
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_item_type CHECK (item_type IN ('PRODUCT_ITEM', 'VEHICLE', 'HOTEL', 'HOTEL_ROOM', 'FLIGHT', 'DESTINATION', 'HOME_LISTING', 'VEHICLE_OFFER'))");
             DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_availability CHECK (availability IN ('in stock', 'out of stock', 'preorder', 'available for order', 'discontinued'))");
             DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_condition CHECK (condition IN ('new', 'refurbished', 'used'))");
-            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_visibility CHECK (visibility IN ('published', 'staging'))");
+            DB::statement("ALTER TABLE meta_catalog_items ADD CONSTRAINT chk_visibility CHECK (visibility IN ('published', 'staging', 'hidden'))");
         }
     }
 
