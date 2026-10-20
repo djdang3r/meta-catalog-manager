@@ -37,6 +37,7 @@ class MetaCatalogItem extends Model
         'price',
         'sale_price',
         'sale_price_effective_date',
+        'currency',
         'availability',
         'condition',
         'quantity_to_sell_on_facebook',

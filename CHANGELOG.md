@@ -1,3 +1,8 @@
+## [1.0.84] - 2026-10-20
+
+### Fixed
+- `MetaCatalogItem::$fillable` no incluía `currency`: `syncFromApi()` mapeaba la moneda que devuelve Meta (p. ej. `COP`) pero `fill()` la descartaba en silencio, así que la columna quedaba en NULL al importar/sincronizar. Ahora la moneda de cada item se persiste.
+
 ## [1.0.83] - 2026-10-20
 
 ### Fixed
