@@ -1,3 +1,8 @@
+## [1.0.83] - 2026-10-20
+
+### Fixed
+- `ImageService::download()` ahora, si la URL de origen no responde, reutiliza una copia local del mismo producto cuyo contenido (sha256) coincide con el hash de la URL propia (`.../storage/products/{2}/{sha256}.{ext}`). Al reimportar un catálogo el item cambia de id local y sus imágenes quedan huérfanas bajo el id anterior, así que el sync dejaba imágenes rotas para siempre aunque el archivo siguiera en disco.
+
 ## [1.0.82] - 2026-10-20
 
 ### Fixed

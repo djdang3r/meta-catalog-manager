@@ -167,12 +167,84 @@ class ImageService
             }
         }
 
+        // Fallback: si la URL no responde, reutilizar una copia local del mismo
+        // producto. Al reimportar un catálogo el item cambia de id local y sus
+        // imágenes quedan huérfanas bajo el id ANTERIOR del catálogo, aunque el
+        // contenido (sha256) es el mismo. Sin esto, un catálogo con URLs propias
+        // caídas (`.../storage/products/ab/{sha256}.jpg`) queda con imágenes
+        // rotas para siempre aunque el archivo siga en disco.
+        $existing = $this->findExistingLocalCopy($image, $disk);
+
+        if ($existing !== null) {
+            $binary = Storage::disk($disk)->get($existing);
+
+            $image->update([
+                'local_path'    => $existing,
+                'local_url'     => Storage::disk($disk)->url($existing),
+                'mime_type'     => $this->detectMimeType($binary, $existing),
+                'file_size'     => strlen($binary),
+                'downloaded_at' => now(),
+            ]);
+
+            return true;
+        }
+
         return false;
     }
 
     // -------------------------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------------------------
+
+    /**
+     * Busca una copia local del mismo producto cuyo contenido coincida con el
+     * sha256 incrustado en una URL de storage propia. Devuelve la ruta relativa
+     * en el disco o null.
+     */
+    private function findExistingLocalCopy(MetaCatalogImage $image, string $disk): ?string
+    {
+        $productId    = $image->item?->meta_product_item_id;
+        $expectedHash = $this->contentHashFromUrl($image->original_url);
+
+        if (! $productId || $expectedHash === null) {
+            return null;
+        }
+
+        $storage = Storage::disk($disk);
+
+        foreach ($storage->directories('meta-catalog') as $catalogDir) {
+            $productDir = $catalogDir.'/products/'.$productId;
+
+            if (! $storage->exists($productDir)) {
+                continue;
+            }
+
+            foreach ($storage->files($productDir) as $file) {
+                if (hash('sha256', $storage->get($file)) === $expectedHash) {
+                    return $file;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extrae el sha256 de una URL propia con forma
+     * `<host>/storage/products/{2 hex}/{64 hex}.{ext}`. Null si no aplica.
+     */
+    private function contentHashFromUrl(?string $url): ?string
+    {
+        if (! is_string($url) || $url === '') {
+            return null;
+        }
+
+        if (! preg_match('#/storage/products/[0-9a-f]{2}/([0-9a-f]{64})\.[A-Za-z0-9]+#', $url, $matches)) {
+            return null;
+        }
+
+        return strtolower($matches[1]);
+    }
 
     private function detectMimeType(string $binary, string $url): string
     {
