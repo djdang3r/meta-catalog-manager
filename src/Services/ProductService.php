@@ -71,15 +71,61 @@ class ProductService
             $this->withMetaPricesNumeric($data)
         );
 
-        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+        return $this->persistItem($catalog, $data, (string) $response['id']);
+    }
 
-        return $modelClass::create(array_merge(
+    /**
+     * Persiste un item de Meta de forma idempotente.
+     *
+     * `createSingle()` y `createViaItemsBatch()` son POST idempotentes para Meta:
+     * si el `retailer_id` ya existe, Meta devuelve el mismo `id`. La fila local
+     * no puede volver a insertarse porque `meta_product_item_id` es único
+     * (incluyendo soft-deleted). Antes eso lanzaba 23505 y abortaba la
+     * transacción del caller. Aquí se actualiza/restaura la fila existente.
+     */
+    private function persistItem(MetaCatalog $catalog, array $data, string $metaProductItemId): MetaCatalogItem
+    {
+        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
+        $attributes = array_merge(
             $this->mapApiDataToColumns($data),
             [
                 'meta_catalog_id'      => $catalog->id,
-                'meta_product_item_id' => $response['id'],
-            ]
-        ));
+                'meta_product_item_id' => $metaProductItemId,
+            ],
+        );
+
+        $item = $modelClass::withTrashed()
+            ->where('meta_product_item_id', $metaProductItemId)
+            ->first();
+
+        if ($item === null && isset($data['retailer_id'])) {
+            $item = $modelClass::withTrashed()
+                ->where('meta_catalog_id', $catalog->id)
+                ->where('retailer_id', $data['retailer_id'])
+                ->first();
+        }
+
+        if ($item === null) {
+            return $modelClass::create($attributes);
+        }
+
+        if ((string) $item->meta_catalog_id !== (string) $catalog->id) {
+            throw new \RuntimeException(sprintf(
+                'El item %s ya pertenece al catálogo local %s; no se reasigna a %s.',
+                $metaProductItemId,
+                (string) $item->meta_catalog_id,
+                (string) $catalog->id,
+            ));
+        }
+
+        if (method_exists($item, 'trashed') && $item->trashed()) {
+            $item->restore();
+        }
+
+        $item->fill($attributes);
+        $item->save();
+
+        return $item->fresh();
     }
 
     /**
@@ -944,15 +990,7 @@ class ProductService
         $retailerId = $data['retailer_id'];
         $productId = $this->waitForBatchHandle($catalog, $handles[0], $retailerId);
 
-        $modelClass = config('meta-catalog.models.meta_catalog_item', MetaCatalogItem::class);
-
-        return $modelClass::updateOrCreate(
-            ['meta_catalog_id' => $catalog->id, 'retailer_id' => $data['retailer_id']],
-            array_merge(
-                $this->mapApiDataToColumns($data),
-                ['meta_product_item_id' => $productId]
-            )
-        );
+        return $this->persistItem($catalog, $data, (string) $productId);
     }
 
     /**

@@ -1,3 +1,8 @@
+## [1.0.87] - 2026-10-30
+
+### Fixed
+- `ProductService::createSingle()` y `createViaItemsBatch()` no eran idempotentes: Meta devuelve el mismo `meta_product_item_id` al republicar un `retailer_id` existente, y el `create()` local violaba el índice único `meta_catalog_items_meta_product_item_id_unique` (23505). Ese error abortaba la transacción del `ProductController` y terminaba en un 500 al editar un producto. Ahora la persistencia busca por `meta_product_item_id` (incluyendo soft-deleted), luego por `(meta_catalog_id, retailer_id)`, restaura la fila si estaba borrada y la actualiza; si el item pertenece a otro catálogo local falla con un `RuntimeException` de dominio sin ejecutar SQL inválido.
+
 ## [1.0.86] - 2026-10-20
 
 ### Added
